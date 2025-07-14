@@ -11,4 +11,9 @@ app.use(express.json());
 app.use("/api/test", healthCheckRoutes);
 app.use("/api/user", userRoutes);
 
+// handling all other incorrect routes
+app.all(/./, (req, res) => {
+    res.status(404).json({ message: "Page does not exist" });
+});
+
 export default app;
