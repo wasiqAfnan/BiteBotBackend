@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const nutritionEntrySchema = new mongoose.Schema({
   ingredient: { type: String, required: true },
@@ -13,4 +13,4 @@ const nutritionEntrySchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('NutritionEntry', nutritionEntrySchema);
+export const  Nutrition= mongoose.model('NutritionEntry', nutritionEntrySchema);
