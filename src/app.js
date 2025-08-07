@@ -1,5 +1,5 @@
 import express from "express";
-
+import errorMiddleware from "./middlewares/error.middlewares.js";
 import { userRoutes, healthCheckRoutes } from "./routes/index.js";
 
 const app = express();
@@ -16,4 +16,6 @@ app.all(/./, (req, res) => {
     res.status(404).json({ message: "Page does not exist" });
 });
 
+// error middleware
+app.use(errorMiddleware);
 export default app;
