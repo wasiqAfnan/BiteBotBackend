@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
     {
@@ -15,7 +16,7 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, "Password is required"],
-            minlength: [6, "Password must be at least 6 characters long"],
+            minlength: [8, "Password must be at least 6 characters long"],
             select: false, // Don't include password in queries by default
         },
         role: {
@@ -33,8 +34,12 @@ const userSchema = new mongoose.Schema(
             },
 
             avatar: {
-                type: String,
-                required: [true, "Must have an Avatar"],
+                image_id: {
+                    type: String,
+                },
+                image_url: {
+                    type: String,
+                },
             },
 
             bio: {
@@ -44,7 +49,7 @@ const userSchema = new mongoose.Schema(
                 default: "",
             },
 
-            // Fields mainly used by cooks but available to all
+            // Fields mainly used by chefs but available to all
             education: {
                 type: String,
                 trim: true,
@@ -60,12 +65,6 @@ const userSchema = new mongoose.Schema(
             externalLinks: [
                 {
                     type: String,
-                    validate: {
-                        validator: function (url) {
-                            return /^https?:\/\/.+/.test(url);
-                        },
-                        message: "Please provide valid URLs for external links",
-                    },
                 },
             ],
 
@@ -145,6 +144,14 @@ const userSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) {
+        return next();
+    }
+
+    this.password = await bcrypt.hash(this.password, 10);
+});
 
 const User = mongoose.model("User", userSchema);
 

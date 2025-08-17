@@ -1,38 +1,57 @@
 import { ApiResponse, ApiError } from "../utils/index.js";
+import User from "../models/user.models.js";
+
 export const handleRegister = async (req, res, next) => {
     try {
         // get name, email and pw from body
-        const { email, password, role } = req.body;
+        const { email, password, profile } = req.body;
+
         // validate
-        if (!(name && email && password)) {
+        if (!(email && password && profile && profile.name)) {
             throw new ApiError("All field must be passed", 400);
         }
 
-        // check if user have passed empty string in any of the field
-        if ([name, email, password].some((field) => field?.trim() === "")) {
-            throw new ApiError("All field must be passed", 400);
+        // Email format validation using regex
+        const emailRegex =
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+        if (!emailRegex.test(email)) {
+            throw new ApiError("Email Not Valid", 400);
+        }
+
+        // Password validation in controller
+        const passwordRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        // check min 8 char, one uppercase, special char and number
+        if (!passwordRegex.test(password)) {
+            throw new ApiError("Password Not Valid", 400);
         }
 
         // validate if user exists
-        let user = await User.findOne({ uEmail: email });
+        let user = await User.findOne({ email });
         if (user) {
             throw new ApiError("User already exists with this email", 400);
         }
 
-        // save to db
-        user = new User({
-            uName: name,
-            uEmail: email,
-            uPass: password,
+        // Prepare profile data - only include fields that are provided
+        const profileData = {
+            name: profile.name,
+        };
+
+        // Create new user object
+        const newUser = new User({
+            email: email.toLowerCase(),
+            profile: profileData,
+            favourites: [], // Initialize empty favourites array
         });
 
-        const savedUser = await user.save();
+        // Save user to database
+        const savedUser = await newUser.save();        
+
         // send response
         return res.status(201).json(
             new ApiResponse(201, "User Created Successfully", {
-                name: savedUser.uName,
-                email: savedUser.uEmail,
-                role: savedUser.uRole,
+                savedUser
             })
         );
     } catch (error) {
