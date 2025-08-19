@@ -2,11 +2,12 @@ import constants from "../constants.js";
 
 const errorMiddleware = (err, req, res, next) => {
     // Get error details
-    let { statusCode, message, stack } = err;
+    let { success, statusCode, message, stack } = err;
 
     if (constants.NODE_ENV === "development") {
         // Send error response
         return res.status(statusCode || 500).json({
+            success,
             statusCode,
             message: message || "Something went wrong",
             stack: stack || "",
@@ -26,6 +27,7 @@ const errorMiddleware = (err, req, res, next) => {
 
     // Send error response
     return res.status(statusCode || 500).json({
+        success,
         statusCode,
         message: message || "Something went wrong",
     });

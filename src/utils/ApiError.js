@@ -1,6 +1,7 @@
 class ApiError extends Error {
-    constructor(message = "Operation Failed", statusCode = 500) {
+    constructor(statusCode = 500, message = "Operation Failed") {
         super(message);
+        this.success = false;
         this.statusCode = Number(statusCode);
         this.data = null;
         Error.captureStackTrace(this, this.constructor);
