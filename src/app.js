@@ -1,11 +1,13 @@
 import express from "express";
 import errorMiddleware from "./middlewares/error.middlewares.js";
 import { userRoutes, healthCheckRoutes } from "./routes/index.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
 // middlewares
 app.use(express.json());
+app.use(cookieParser());
 
 // routes
 app.use("/api/test", healthCheckRoutes);
