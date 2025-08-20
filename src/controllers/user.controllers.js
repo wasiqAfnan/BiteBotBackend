@@ -107,12 +107,12 @@ export const handleLogin = async (req, res, next) => {
 
         // send cookie
         res.cookie("accessToken", accessToken, {
-            httpOnly: false,
-            secure: false,
+            httpOnly: true,
+            secure: true,
             maxAge: 24 * 60 * 60 * 1000, // 1 day
         }).cookie("refreshToken", refreshToken, {
-            httpOnly: false,
-            secure: false,
+            httpOnly: true,
+            secure: true,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 day
         });
 
@@ -141,11 +141,11 @@ export const handleLogout = async (req, res, next) => {
         await user.save();
 
         res.clearCookie("accessToken", {
-            httpOnly: false,
-            secure: false,
+            httpOnly: true,
+            secure: true,
         }).clearCookie("refreshToken", {
-            httpOnly: false,
-            secure: false,
+            httpOnly: true,
+            secure: true,
         });
 
         return res
