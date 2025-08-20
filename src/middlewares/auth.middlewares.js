@@ -4,13 +4,15 @@ import { ApiError, ApiResponse } from "../utils/index.js";
 import constants from "../constants.js";
 
 export const isLoggedIn = async (req, res, next) => {
-    // get the token from cookie
-    const accessToken = req.cookies.accessToken;
-    // validate
-    if (!accessToken) {
-        throw new ApiError(401, "Not logged in");
-    }
     try {
+        // get the token from cookie
+        const accessToken = req.cookies.accessToken;
+
+        // validate
+        if (!accessToken) {
+            throw new ApiError(401, "Not logged in");
+        }
+
         // decode token
         const payload = jwt.verify(accessToken, constants.ACCESS_TOKEN_SECRET);
 
@@ -19,7 +21,7 @@ export const isLoggedIn = async (req, res, next) => {
 
         // validate user
         if (!user) {
-            throw new ApiError("Not logged in", 401);
+            throw new ApiError(401, "Not logged in");
         }
 
         // if user exist then setting up req.user obj to pass to handler
@@ -27,7 +29,13 @@ export const isLoggedIn = async (req, res, next) => {
 
         return next();
     } catch (error) {
-        console.error("Auth error:", error);
-        next(error);
+        console.log("Some Error Occured: ", error);
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(new ApiError(500, "Something went wrong during Logout"));
     }
 };
