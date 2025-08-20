@@ -68,11 +68,11 @@ export const handleRegister = async (req, res, next) => {
         );
     }
 };
-export const handleLogin = async (req, res) => {
+export const handleLogin = async (req, res, next) => {
     try {
         // get email and pw from body
         const { email, password } = req.body;
-        
+
         // validate
         if (!(email && password)) {
             throw new ApiError(400, "All field must be passed");
@@ -132,4 +132,17 @@ export const handleLogin = async (req, res) => {
             new ApiError(500, "Something went wrong during registration")
         );
     }
+};
+
+export const handleLogout = async (req, res, next) => {
+    try {
+        const user = 
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, "Logged out successfully"));
+    } catch (error) {
+        
+    }
+    
 };
