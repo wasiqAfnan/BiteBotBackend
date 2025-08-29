@@ -36,10 +36,10 @@ const userSchema = new mongoose.Schema(
             },
 
             avatar: {
-                image_id: {
+                public_id: {
                     type: String,
                 },
-                image_url: {
+                secure_url: {
                     type: String,
                 },
             },
@@ -48,30 +48,6 @@ const userSchema = new mongoose.Schema(
                 type: String,
                 trim: true,
                 maxlength: [500, "Bio cannot exceed 500 characters"],
-                default: "",
-            },
-
-            // Fields mainly used by chefs but available to all
-            education: {
-                type: String,
-                trim: true,
-                default: "",
-            },
-
-            experience: {
-                type: String,
-                trim: true,
-                default: "",
-            },
-
-            externalLinks: [
-                {
-                    type: String,
-                },
-            ],
-
-            subscriptionPrice: {
-                type: Number,
             },
 
             // Fields mainly used by normal users but available to all
@@ -129,6 +105,35 @@ const userSchema = new mongoose.Schema(
                         ],
                         message: "Invalid cuisine type",
                     },
+                },
+            ],
+        },
+
+        // Chef-specific profile (only populated for CHEFs)
+        chefProfile: {
+            education: {
+                type: String,
+            },
+
+            experience: {
+                type: String,
+            },
+
+            externalLinks: [
+                {
+                    type: String,
+                    default: [],
+                },
+            ],
+
+            subscriptionPrice: {
+                type: Number,
+            },
+
+            recipes: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Recipe",
                 },
             ],
         },

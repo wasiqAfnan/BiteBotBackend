@@ -109,10 +109,12 @@ export const handleLogin = async (req, res, next) => {
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: true,
+            sameSite: "None",
             maxAge: 24 * 60 * 60 * 1000, // 1 day
         }).cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: true,
+            sameSite: "None",
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 day
         });
 
