@@ -1,9 +1,22 @@
 import mongoose from 'mongoose';
 
 const recipeSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  cook: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  title: {
+    type: String,
+    required: [true, "Title is required"],
+    minLength: [3, "Title must be at least 3 characters long"],
+    maxLength: [50, "Title cannot exceed 50 characters"],
+  },
+  description: {
+    type: String,
+    required: [true, "Description is required"],
+    minLength: [10, "Description must be at least 10 characters long"],
+  },
+  chefId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, "Chef ID is required"],
+  },
 
   ingredients: [{
     name: String,
@@ -13,7 +26,11 @@ const recipeSchema = new mongoose.Schema({
   }],
 
   steps: [{
-    instruction: String,
+    stepNo: Number,
+    instruction: {
+      type: String,
+      required: [true, "Instruction is required"]
+    },
     imageUrl: String
   }],
 
@@ -23,9 +40,7 @@ const recipeSchema = new mongoose.Schema({
   prepTime: Number,
   cookTime: Number,
   servings: Number,
-  scalingInfo: String,
-  externalMediaLinks: [String],
-
+  externalMediaLinks: [String], //for youtube video ref or some other site external site reference
   isPremium: { type: Boolean, default: false }
 }, { timestamps: true });
 

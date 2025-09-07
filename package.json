@@ -15,12 +15,15 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "express": "^5.1.0",
+    "joi": "^18.0.0",
     "mongoose": "^8.16.3",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "populate": "^5.0.1"
   },
   "devDependencies": {
     "dotenv": "^17.2.0"
