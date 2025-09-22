@@ -8,9 +8,9 @@ import {
     updateRecipe,
     deleteRecipe,
 } from "../controllers/recipe.controller.js";
-import { validateRecipe } from "../middlewares/recipe.validation.js";
+import { validateRecipe } from "../middlewares/recipe.middleware.js";
 
-// router.get("/recipes", sayhello);
+
 
 // CREATE (with validation)
 router.post("/recipes", validateRecipe, addRecipe);
