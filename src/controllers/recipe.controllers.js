@@ -1,13 +1,5 @@
 import { Recipe } from "../models/recipes.models.js";
 
-const sayhello = async (req, res) => {
-    try{
-        res.send("Welcome to bitebot");
-    }catch(err){
-        console.log(err);
-    }
-};
-
 // CREATE Recipe
 const addRecipe = async (req, res) => {
     try {

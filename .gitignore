@@ -75,11 +75,6 @@ web_modules/
 
 # dotenv environment variable files
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -138,4 +133,4 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
-package-lock.json
+package-lock.json.env 
