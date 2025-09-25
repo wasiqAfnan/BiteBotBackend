@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import constants from "../constants.js";
 
 const userSchema = new mongoose.Schema(
     {
@@ -34,10 +36,10 @@ const userSchema = new mongoose.Schema(
             },
 
             avatar: {
-                image_id: {
+                public_id: {
                     type: String,
                 },
-                image_url: {
+                secure_url: {
                     type: String,
                 },
             },
@@ -46,30 +48,6 @@ const userSchema = new mongoose.Schema(
                 type: String,
                 trim: true,
                 maxlength: [500, "Bio cannot exceed 500 characters"],
-                default: "",
-            },
-
-            // Fields mainly used by chefs but available to all
-            education: {
-                type: String,
-                trim: true,
-                default: "",
-            },
-
-            experience: {
-                type: String,
-                trim: true,
-                default: "",
-            },
-
-            externalLinks: [
-                {
-                    type: String,
-                },
-            ],
-
-            subscriptionPrice: {
-                type: Number,
             },
 
             // Fields mainly used by normal users but available to all
@@ -131,6 +109,35 @@ const userSchema = new mongoose.Schema(
             ],
         },
 
+        // Chef-specific profile (only populated for CHEFs)
+        chefProfile: {
+            education: {
+                type: String,
+            },
+
+            experience: {
+                type: String,
+            },
+
+            externalLinks: [
+                {
+                    type: String,
+                    default: [],
+                },
+            ],
+
+            subscriptionPrice: {
+                type: Number,
+            },
+
+            recipes: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Recipe",
+                },
+            ],
+        },
+
         // Embedded favourites array (mainly for normal users)
         favourites: [
             {
@@ -149,9 +156,37 @@ userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
         return next();
     }
-    
+
     this.password = await bcrypt.hash(this.password, 10);
 });
+
+userSchema.methods.isPasswordCorrect = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
+
+userSchema.methods.generateAccessToken = async function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+        },
+        constants.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: constants.ACCESS_TOKEN_EXPIRY,
+        }
+    );
+};
+
+userSchema.methods.generateRefreshToken = async function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+        },
+        constants.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: constants.REFRESH_TOKEN_EXPIRY,
+        }
+    );
+};
 
 const User = mongoose.model("User", userSchema);
 

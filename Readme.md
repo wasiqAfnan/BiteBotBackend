@@ -1,6 +1,16 @@
 # 🍳 BiteBot Backend
 
+
 **Intelligent Recipe Platform with Cost & Nutrition Insights**
+## Backend URL
+https://bitebotbackend.onrender.com/
+
+## End Points
+- Health Check Route -> /api/test
+- Sign Up Route -> /api/user/register
+- Log In Route -> /api/user/login
+- Log Out Route -> /api/user/logout
+- Profile Route -> /api/user/me
 
 ## Module Overview
 A Node.js/Express.js backend divided into two core modules:
