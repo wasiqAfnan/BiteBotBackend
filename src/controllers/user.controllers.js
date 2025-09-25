@@ -4,10 +4,10 @@ import User from "../models/user.models.js";
 export const handleRegister = async (req, res, next) => {
     try {
         // get name, email and pw from body
-        const { email, password, profile } = req.body;
+        const { email, password, profile_name } = req.body;
 
         // validate
-        if (!(email && password && profile && profile.name)) {
+        if (!(email && password && profile_name)) {
             throw new ApiError("All field must be passed", 400);
         }
 
@@ -35,7 +35,7 @@ export const handleRegister = async (req, res, next) => {
 
         // Prepare profile data - only include fields that are provided
         const profileData = {
-            name: profile.name,
+            name: profile_name,
         };
 
         // Create new user object
