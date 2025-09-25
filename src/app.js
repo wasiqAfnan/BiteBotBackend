@@ -12,6 +12,7 @@ app.use(cookieParser());
 // routes
 app.use("/api/test", healthCheckRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api", recipeRouter);
 
 // handling all other incorrect routes
 app.all(/./, (req, res) => {
