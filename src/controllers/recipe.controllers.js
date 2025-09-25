@@ -1,4 +1,4 @@
-import { Recipe } from "../models/recipes.models.js";
+import { Recipe } from "../models/recipe.models.js";
 
 // CREATE Recipe
 const addRecipe = async (req, res) => {
@@ -107,7 +107,6 @@ const deleteRecipe = async (req, res) => {
 };
 
 export {
-    sayhello,
     addRecipe,
     getAllRecipes,
     getRecipeById,

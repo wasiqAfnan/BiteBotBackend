@@ -1,29 +1,29 @@
 import { Router } from "express";
-const router = Router();
+const recipeRouter = Router();
 import {
     addRecipe,
     getAllRecipes,
     getRecipeById,
     updateRecipe,
     deleteRecipe,
-} from "../controllers/recipe.controller.js";
-import { validateRecipe } from "../middlewares/recipe.middleware.js";
+} from "../controllers/recipe.controllers.js";
+import { validateRecipe } from "../middlewares/recipe.middlewares.js";
 
 
 
 // CREATE (with validation)
-router.post("/recipes", validateRecipe, addRecipe);
+recipeRouter.post("/recipes", validateRecipe, addRecipe);
 
 // READ
-router.get("/recipes", getAllRecipes);
+recipeRouter.get("/recipes", getAllRecipes);
 
 // when a user clicks on a recipe from the list to view the detailed recipe
-router.get("/recipes/:id", getRecipeById);
+recipeRouter.get("/recipes/:id", getRecipeById);
 
 // UPDATE (with validation)
-router.put("/recipes/:id", validateRecipe, updateRecipe);
+recipeRouter.put("/recipes/:id", validateRecipe, updateRecipe);
 
 // DELETE
-router.delete("/recipes/:id", deleteRecipe);
+recipeRouter.delete("/recipes/:id", deleteRecipe);
 
-export default router;
+export default recipeRouter;

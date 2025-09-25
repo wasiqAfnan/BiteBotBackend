@@ -2,6 +2,7 @@ import express from "express";
 import errorMiddleware from "./middlewares/error.middlewares.js";
 import { userRoutes, healthCheckRoutes } from "./routes/index.js";
 import cookieParser from "cookie-parser";
+import recipeRouter from "./routes/recipe.routes.js";
 
 const app = express();
 
