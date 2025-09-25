@@ -15,19 +15,17 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
+    "joi": "^18.0.0",
     "mongoose": "^8.16.3",
-    "prettier": "^3.6.2"
+    "nodemon": "^3.1.10",
+    "populate": "^5.0.1"
   },
   "devDependencies": {
-    "dotenv": "^17.2.0",
-    "nodemon": "^3.1.10"
+    "dotenv": "^17.2.0"
   }
 }
