@@ -188,4 +188,6 @@ export const handleLogout = async (req, res, next) => {
     }
 };
 
-export const handleChangeAvatar = async (req, res, next) => {};
+export const handleChangeAvatar = async (req, res, next) => {
+    res.status(200).json(new ApiResponse(200, "Avatar Uploaded Successfully"));
+};
