@@ -290,7 +290,40 @@ export const handleGetProfile = async (req, res, next) => {
             throw new ApiError(404, "User not found");
         }
 
-        return res.status(200).json(new ApiResponse(200, "User Profile Data", user));
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "User Profile Data", user));
+    } catch (error) {
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(
+            new ApiError(500, "Something went wrong during file upload")
+        );
+    }
+};
+
+export const handleUpdateProfile = async (req, res, next) => {
+    try {
+        const { profile_name } = req.body;
+        if (!profile_name) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            throw new ApiError(404, "User does not exist");
+        }
+
+        user.profile.name = profile_name;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "User updated successfully", user));
     } catch (error) {
         // If the error is already an instance of ApiError, pass it to the error handler
         if (error instanceof ApiError) {
