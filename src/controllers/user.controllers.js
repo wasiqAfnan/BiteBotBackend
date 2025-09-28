@@ -248,3 +248,36 @@ export const handleChangeAvatar = async (req, res, next) => {
         );
     }
 };
+
+export const handleChangePassword = async (req, res, next) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) {
+            throw new ApiError("All fields are required", 400);
+        }
+
+        const user = await User.findById(req.user._id).select("+password");
+        if (!(await user.isPasswordCorrect(oldPassword))) {
+            throw new ApiError(401, "Incorrect credentials");
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Password changed successfully"));
+    } catch (error) {
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(
+            new ApiError(500, "Something went wrong during file upload")
+        );
+    }
+};
+export const handleResetPassword = async (req, res, next) => {};
+export const handleForgetPassword = async (req, res, next) => {};

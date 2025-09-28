@@ -65,8 +65,8 @@ export const deleteCloudFile = async (public_id) => {
         // const resource_type = public_id.split("_")[1].split("/")[0];
         const resource_type = "image";
 
-        console.log(public_id);
-        console.log(resource_type);
+        // console.log(public_id);
+        // console.log(resource_type);
 
         await cloudinary.uploader.destroy(public_id, {
             resource_type: resource_type,
