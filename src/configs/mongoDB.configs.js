@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import constants from "../constants.js";
 
-const connectDb = async () => {
+const connectToDb = async () => {
     try {
         const connectionInstance = await mongoose.connect(constants.MONGO_URI);
         console.log(`MongoDB Connected: ${connectionInstance.connection.host}`);
@@ -12,4 +12,4 @@ const connectDb = async () => {
     }
 };
 
-export default connectDb;
+export default connectToDb;

@@ -1,5 +1,11 @@
-import { ApiResponse, ApiError } from "../utils/index.js";
 import User from "../models/user.models.js";
+import {
+    ApiResponse,
+    ApiError,
+    uploadImageToCloud,
+    deleteLocalFile,
+    deleteCloudFile,
+} from "../utils/index.js";
 
 export const handleRegister = async (req, res, next) => {
     try {
@@ -57,8 +63,7 @@ export const handleRegister = async (req, res, next) => {
         // saving refresh token to db
         newUser.refreshToken = refreshToken;
         const savedUser = await newUser.save();
-        
-        savedUser.password = undefined;
+
         savedUser.refreshToken = undefined;
         savedUser.password = undefined;
 
@@ -156,9 +161,7 @@ export const handleLogin = async (req, res, next) => {
         }
 
         // For all other errors, send a generic error message
-        return next(
-            new ApiError(500, "Something went wrong during login")
-        );
+        return next(new ApiError(500, "Something went wrong during login"));
     }
 };
 
@@ -177,8 +180,8 @@ export const handleLogout = async (req, res, next) => {
         });
 
         return res
-        .status(200)
-        .json(new ApiResponse(200, "Logged out successfully"));
+            .status(200)
+            .json(new ApiResponse(200, "Logged out successfully"));
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
@@ -187,9 +190,149 @@ export const handleLogout = async (req, res, next) => {
         }
 
         // For all other errors, send a generic error message
+        return next(new ApiError(500, "Something went wrong during logout"));
+    }
+};
+
+export const handleChangeAvatar = async (req, res, next) => {
+    const avatarLocalPath = req.file ? req.file.path : "";
+    try {
+        // Get avatar file from request
+
+        // Check if avatar file is empty
+        if (!avatarLocalPath) {
+            throw new ApiError(400, "No avatar file provided");
+        }
+
+        // Find current user
+        const user = await User.findById(req.user._id).select("profile.avatar");
+        if (!user) {
+            throw new ApiError(403, "User Not Found, please login again");
+        }
+
+        // Upload avatar to Cloudinary
+        const newAvatar = await uploadImageToCloud(avatarLocalPath);
+        if (!newAvatar.public_id || !newAvatar.secure_url) {
+            throw new ApiError(400, "Error uploading avatar");
+        }
+
+        // Delete old avatar
+        // console.log(user?.profile?.avatar?.public_id);
+        const result = await deleteCloudFile(user?.profile?.avatar?.public_id);
+        if (!result) {
+            await deleteCloudFile(newAvatar.public_id);
+            throw new ApiError(400, "Error deleting old avatar");
+        }
+
+        // Update DB user with new avatar
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { "profile.avatar": newAvatar },
+            { new: true }
+        ).select("profile.avatar");
+
+        res.status(200).json(
+            new ApiResponse(200, "Avatar Uploaded Successfully", updatedUser)
+        );
+    } catch (error) {
+        await deleteLocalFile(avatarLocalPath);
+        console.log("Some Error Occured: ", error);
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
         return next(
-            new ApiError(500, "Something went wrong during logout")
+            new ApiError(500, "Something went wrong during file upload")
         );
     }
-    
+};
+
+export const handleChangePassword = async (req, res, next) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) {
+            throw new ApiError("All fields are required", 400);
+        }
+
+        const user = await User.findById(req.user._id).select("+password");
+        if (!(await user.isPasswordCorrect(oldPassword))) {
+            throw new ApiError(401, "Incorrect credentials");
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Password changed successfully"));
+    } catch (error) {
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(
+            new ApiError(500, "Something went wrong during file upload")
+        );
+    }
+};
+export const handleResetPassword = async (req, res, next) => {};
+
+export const handleForgetPassword = async (req, res, next) => {};
+
+export const handleGetProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "User Profile Data", user));
+    } catch (error) {
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(
+            new ApiError(500, "Something went wrong during file upload")
+        );
+    }
+};
+
+export const handleUpdateProfile = async (req, res, next) => {
+    try {
+        const { profile_name } = req.body;
+        if (!profile_name) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            throw new ApiError(404, "User does not exist");
+        }
+
+        user.profile.name = profile_name;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "User updated successfully", user));
+    } catch (error) {
+        // If the error is already an instance of ApiError, pass it to the error handler
+        if (error instanceof ApiError) {
+            return next(error);
+        }
+
+        // For all other errors, send a generic error message
+        return next(
+            new ApiError(500, "Something went wrong during file upload")
+        );
+    }
 };
