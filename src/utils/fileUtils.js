@@ -10,8 +10,8 @@ export const deleteLocalFile = async (localFilePath) => {
 
         const absolutePath = path.resolve(localFilePath);
 
-        if (!fs.existsSync(absolutePath)) {
-            throw new ApiError(500, "Error while deleting local file");
+        if (!(fs.existsSync(absolutePath))) {
+            console.log("Error while deleting local file");
         }
         await fs.promises.unlink(absolutePath);
         console.log("Deleted local file:", absolutePath);

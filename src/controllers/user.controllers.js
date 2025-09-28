@@ -205,7 +205,7 @@ export const handleChangeAvatar = async (req, res, next) => {
         }
 
         // Find current user
-        const user = await User.findById(req.user._id).select("avatar");
+        const user = await User.findById(req.user._id).select("profile.avatar");
         if (!user) {
             throw new ApiError(403, "User Not Found, please login again");
         }
@@ -226,9 +226,9 @@ export const handleChangeAvatar = async (req, res, next) => {
         // Update DB user with new avatar
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
-            { avatar: newAvatar },
+            { "profile.avatar": newAvatar },
             { new: true }
-        ).select("avatar");
+        ).select("profile.avatar");
 
         res.status(200).json(
             new ApiResponse(200, "Avatar Uploaded Successfully", updatedUser)
