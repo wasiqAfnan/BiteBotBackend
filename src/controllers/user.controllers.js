@@ -5,6 +5,8 @@ import {
     uploadImageToCloud,
     deleteLocalFile,
     deleteCloudFile,
+    isBlankValue,
+    convertToMongoKey
 } from "../utils/index.js";
 
 export const handleRegister = async (req, res, next) => {
@@ -99,6 +101,7 @@ export const handleRegister = async (req, res, next) => {
         );
     }
 };
+
 export const handleLogin = async (req, res, next) => {
     try {
         // get email and pw from body
@@ -279,17 +282,14 @@ export const handleChangePassword = async (req, res, next) => {
         );
     }
 };
+
 export const handleResetPassword = async (req, res, next) => {};
 
 export const handleForgetPassword = async (req, res, next) => {};
 
 export const handleGetProfile = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            throw new ApiError(404, "User not found");
-        }
-
+        const user = req.user;
         return res
             .status(200)
             .json(new ApiResponse(200, "User Profile Data", user));
@@ -308,22 +308,63 @@ export const handleGetProfile = async (req, res, next) => {
 
 export const handleUpdateProfile = async (req, res, next) => {
     try {
-        const { profile_name } = req.body;
-        if (!profile_name) {
-            throw new ApiError(400, "All fields are required");
+        const userId = req.user.id; // from auth middleware
+        const body = req.body;
+        const updates = {};
+
+        // SECURITY: Whitelist allowed fields only
+        const allowedFields = [
+            "profile_name",
+            "profile_bio",
+            "profile_dietaryLabels",
+            "profile_allergens",
+            "profile_cuisine",
+            "chefProfile_education",
+            "chefProfile_experience",
+            "chefProfile_externalLinks",
+            "chefProfile_subscriptionPrice",
+            "chefProfile_recipes",
+            "favourites",
+        ];
+
+        for (const key in body) {
+            if (body.hasOwnProperty(key)) {
+                // SECURITY: Only process whitelisted fields
+                if (!allowedFields.includes(key)) {
+                    continue; // Skip unauthorized fields
+                }
+
+                // check for blank fields
+                if (isBlankValue(body[key])) {
+                    continue;
+                }
+
+                // Convert to dot notation and add to updates
+                updates[convertToMongoKey(key)] = body[key];
+            }
         }
 
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            throw new ApiError(404, "User does not exist");
+        // console.log(updates);
+
+        if (Object.keys(updates).length === 0) {
+            return new ApiError(403, "No fields to update");
         }
 
-        user.profile.name = profile_name;
-        await user.save();
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $set: updates }, // update only required fields
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return new ApiError(403, "No user found");
+        }
 
         return res
             .status(200)
-            .json(new ApiResponse(200, "User updated successfully", user));
+            .json(
+                new ApiResponse(200, "User updated successfully", updatedUser)
+            );
     } catch (error) {
         // If the error is already an instance of ApiError, pass it to the error handler
         if (error instanceof ApiError) {
@@ -332,7 +373,7 @@ export const handleUpdateProfile = async (req, res, next) => {
 
         // For all other errors, send a generic error message
         return next(
-            new ApiError(500, "Something went wrong during file upload")
+            new ApiError(500, "Something went wrong during update")
         );
     }
 };
