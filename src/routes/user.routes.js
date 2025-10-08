@@ -24,12 +24,12 @@ userRoutes
     .post(isLoggedIn, upload.single("avatar"), handleChangeAvatar);
 
 // password routes
-userRoutes.route("/change-password").post(isLoggedIn, handleChangePassword);
+userRoutes.route("/change-password").patch(isLoggedIn, handleChangePassword);
 userRoutes.route("/reset-password").post(handleResetPassword); //Not implemented
 userRoutes.route("/forget-password").post(handleForgetPassword); //Not implemented
 
 // profile routes
 userRoutes.route("/me").get(isLoggedIn, handleGetProfile);
-userRoutes.route("/update").post(isLoggedIn, handleUpdateProfile);
+userRoutes.route("/update").patch(isLoggedIn, handleUpdateProfile);
 
 export default userRoutes;

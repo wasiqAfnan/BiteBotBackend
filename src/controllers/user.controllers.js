@@ -99,6 +99,7 @@ export const handleRegister = async (req, res, next) => {
         );
     }
 };
+
 export const handleLogin = async (req, res, next) => {
     try {
         // get email and pw from body
@@ -279,17 +280,14 @@ export const handleChangePassword = async (req, res, next) => {
         );
     }
 };
+
 export const handleResetPassword = async (req, res, next) => {};
 
 export const handleForgetPassword = async (req, res, next) => {};
 
 export const handleGetProfile = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            throw new ApiError(404, "User not found");
-        }
-
+        const user = req.user;
         return res
             .status(200)
             .json(new ApiResponse(200, "User Profile Data", user));
