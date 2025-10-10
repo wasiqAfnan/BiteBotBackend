@@ -12,7 +12,7 @@ connectToDb().then(() => {
     connectToCloudinary().finally(() => {
         // starting the server
         app.listen(constants.PORT, () =>
-            console.log(`Server is running. URL: http://localhost:${port}`)
+            console.log(`Server is running. URL: http://localhost:${constants.PORT}`)
         );
     });
 });
