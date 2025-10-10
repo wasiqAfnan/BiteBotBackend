@@ -1,4 +1,4 @@
-# 🍳 BiteBot Backend
+# 🍳 BiteBot Backend [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v3/monitor/26nhy.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
 
 
 **Intelligent Recipe Platform with Cost & Nutrition Insights**

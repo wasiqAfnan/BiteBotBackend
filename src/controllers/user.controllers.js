@@ -55,19 +55,11 @@ export const handleRegister = async (req, res, next) => {
         });
 
         // Save user to database
-        // const savedUser = await newUser.save();
-        // savedUser.password = undefined;
+        const savedUser = await newUser.save();
+        savedUser.password = undefined;
 
         // token create
         const accessToken = await newUser.generateAccessToken();
-        const refreshToken = await newUser.generateRefreshToken();
-
-        // saving refresh token to db
-        newUser.refreshToken = refreshToken;
-        const savedUser = await newUser.save();
-
-        savedUser.refreshToken = undefined;
-        savedUser.password = undefined;
 
         // send cookie
         res.cookie("accessToken", accessToken, {
@@ -75,11 +67,6 @@ export const handleRegister = async (req, res, next) => {
             secure: true,
             sameSite: "None",
             maxAge: 24 * 60 * 60 * 1000, // 1 day
-        }).cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "None",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 day
         });
 
         // send response
@@ -130,13 +117,6 @@ export const handleLogin = async (req, res, next) => {
 
         // token create
         const accessToken = await user.generateAccessToken();
-        const refreshToken = await user.generateRefreshToken();
-
-        // saving refresh token to db
-        user.refreshToken = refreshToken;
-        await user.save();
-
-        user.refreshToken = undefined;
         user.password = undefined;
 
         // send cookie
@@ -145,11 +125,6 @@ export const handleLogin = async (req, res, next) => {
             secure: true,
             sameSite: "None",
             maxAge: 24 * 60 * 60 * 1000, // 1 day
-        }).cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "None",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 day
         });
 
         // send response
@@ -170,14 +145,7 @@ export const handleLogin = async (req, res, next) => {
 
 export const handleLogout = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user._id);
-        user.refreshToken = undefined;
-        await user.save();
-
         res.clearCookie("accessToken", {
-            httpOnly: true,
-            secure: true,
-        }).clearCookie("refreshToken", {
             httpOnly: true,
             secure: true,
         });
@@ -344,7 +312,7 @@ export const handleUpdateProfile = async (req, res, next) => {
             }
         }
 
-        // console.log(updates);
+        console.log(updates);
 
         if (Object.keys(updates).length === 0) {
             return new ApiError(403, "No fields to update");

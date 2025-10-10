@@ -10,11 +10,6 @@ export const isBlankValue = (value) => {
         return true;
     }
 
-    // For numbers, check if it's NaN
-    if (typeof value === "number" && isNaN(value)) {
-        return true;
-    }
-
     return false;
 };
 

@@ -107,6 +107,13 @@ const userSchema = new mongoose.Schema(
                     },
                 },
             ],
+
+            subscribed: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                },
+            ],
         },
 
         // Chef-specific profile (only populated for CHEFs)
@@ -136,6 +143,13 @@ const userSchema = new mongoose.Schema(
                     ref: "Recipe",
                 },
             ],
+
+            reviews: [
+                {
+                    name: String,
+                    message: String,
+                },
+            ],
         },
 
         // Embedded favourites array (mainly for normal users)
@@ -145,9 +159,6 @@ const userSchema = new mongoose.Schema(
                 ref: "Recipe",
             },
         ],
-        refreshToken: {
-            type: String,
-        },
     },
     { timestamps: true }
 );
@@ -172,18 +183,6 @@ userSchema.methods.generateAccessToken = async function () {
         constants.ACCESS_TOKEN_SECRET,
         {
             expiresIn: constants.ACCESS_TOKEN_EXPIRY,
-        }
-    );
-};
-
-userSchema.methods.generateRefreshToken = async function () {
-    return jwt.sign(
-        {
-            _id: this._id,
-        },
-        constants.REFRESH_TOKEN_SECRET,
-        {
-            expiresIn: constants.REFRESH_TOKEN_EXPIRY,
         }
     );
 };

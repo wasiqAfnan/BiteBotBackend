@@ -3,6 +3,7 @@ import errorMiddleware from "./middlewares/error.middlewares.js";
 import { userRoutes, healthCheckRoutes } from "./routes/index.js";
 import cookieParser from "cookie-parser";
 import recipeRouter from "./routes/recipe.routes.js";
+import cors from "cors";
 
 const app = express();
 
@@ -10,6 +11,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
+app.use(cors());
 
 // routes
 app.use("/api/test", healthCheckRoutes);
