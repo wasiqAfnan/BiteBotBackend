@@ -12,11 +12,11 @@ import {
 export const handleRegister = async (req, res, next) => {
     try {
         // get name, email and pw from body
-        const { email, password, profile_name } = req.body;
+        const { email, password, profile_name, profile_cuisine, profile_dietryLabels } = req.body;
 
         // validate
-        if (!(email && password && profile_name)) {
-            throw new ApiError("All field must be passed", 400);
+        if (!(email && password && profile_name && profile_cuisine)) {
+            throw new ApiError( 400, "All field must be passed");
         }
 
         // Email format validation using regex
@@ -44,7 +44,10 @@ export const handleRegister = async (req, res, next) => {
         // Prepare profile data - only include fields that are provided
         const profileData = {
             name: profile_name,
+            cuisine: profile_cuisine,
         };
+
+        if(profile_dietryLabels) dietryLabels = profile_dietryLabels;
 
         // Create new user object
         const newUser = new User({
