@@ -10,7 +10,7 @@ export const isLoggedIn = async (req, res, next) => {
 
         // validate
         if (!accessToken) {
-            throw new ApiError(401, "Not logged in");
+            throw new ApiError(455, "Not logged in");
         }
 
         // decode token
@@ -21,7 +21,7 @@ export const isLoggedIn = async (req, res, next) => {
 
         // validate user
         if (!user) {
-            throw new ApiError(401, "Not logged in");
+            throw new ApiError(455, "Not logged in");
         }
 
         // if user exist then setting up req.user obj to pass to handler
@@ -36,6 +36,6 @@ export const isLoggedIn = async (req, res, next) => {
         }
 
         // For all other errors, send a generic error message
-        return next(new ApiError(500, "Something went wrong!"));
+        return next(new ApiError(455, "Something went wrong!"));
     }
 };

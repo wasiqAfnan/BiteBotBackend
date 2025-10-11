@@ -263,7 +263,7 @@ export const handleGetProfile = async (req, res, next) => {
         const user = req.user;
         return res
             .status(200)
-            .json(new ApiResponse(200, "User Profile Data", user));
+            .json(new ApiResponse(200, "Profile Data Fetched Successfully", user));
     } catch (error) {
         // If the error is already an instance of ApiError, pass it to the error handler
         if (error instanceof ApiError) {

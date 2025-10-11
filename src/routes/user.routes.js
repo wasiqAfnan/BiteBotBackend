@@ -18,7 +18,7 @@ const userRoutes = Router();
 // auth routes
 userRoutes.route("/register").post(handleRegister);
 userRoutes.route("/login").post(handleLogin);
-userRoutes.route("/logout").post(isLoggedIn, handleLogout);
+userRoutes.route("/logout").get(isLoggedIn, handleLogout);
 userRoutes
     .route("/change-avatar")
     .post(isLoggedIn, upload.single("avatar"), handleChangeAvatar);
