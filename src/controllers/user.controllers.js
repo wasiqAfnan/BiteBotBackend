@@ -47,7 +47,7 @@ export const handleRegister = async (req, res, next) => {
             cuisine: profile_cuisine,
         };
 
-        if(profile_dietaryLabels) dietaryLabels = profile_dietaryLabels;
+        if(profile_dietaryLabels) profileData.dietaryLabels = profile_dietaryLabels;
 
         // Create new user object
         const newUser = new User({

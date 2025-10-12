@@ -21,17 +21,8 @@ const addRecipe = async (req, res) => {
 const getAllRecipes = async (req, res) => {
     try {
         // const recipes = await Recipe.find().populate("chefId", "name email");
-        const recipes = await Recipe.find();
-        return res.status(200).json({
-            success: true,
-            count: recipes.length,
-            data: recipes,
-        });
-    } catch (err) {
-        return res.status(500).json({
-            success: false,
-            message: err.message,
-        });
+    }catch(e){
+        
     }
 };
 
