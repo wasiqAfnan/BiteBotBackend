@@ -9,21 +9,19 @@ import {
 } from "../controllers/recipe.controllers.js";
 import { validateRecipe } from "../middlewares/recipe.middlewares.js";
 
-
-
 // CREATE (with validation)
-recipeRouter.post("/recipes", validateRecipe, addRecipe);
+recipeRouter.route("/recipes").post(validateRecipe, addRecipe);
 
 // READ
-recipeRouter.get("/recipes", getAllRecipes);
+recipeRouter.route("/recipes").get(getAllRecipes);
 
 // when a user clicks on a recipe from the list to view the detailed recipe
-recipeRouter.get("/recipes/:id", getRecipeById);
+recipeRouter.route("/recipes/:id").get(getRecipeById);
 
 // UPDATE (with validation)
-recipeRouter.put("/recipes/:id", validateRecipe, updateRecipe);
+recipeRouter.route("/recipes/:id").put(validateRecipe, updateRecipe);
 
 // DELETE
-recipeRouter.delete("/recipes/:id", deleteRecipe);
+recipeRouter.route("/recipes/:id").delete(deleteRecipe);
 
 export default recipeRouter;
