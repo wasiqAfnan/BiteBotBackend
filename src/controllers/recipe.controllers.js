@@ -2,13 +2,62 @@ import { Recipe } from "../models/recipe.models.js";
 import { ApiResponse, ApiError } from "../utils/index.js";
 
 // CREATE Recipe (Check Required)
-const addRecipe = async (req, res) => {
+const addRecipe = async (req, res, next) => {
     try {
-        const recipe = await Recipe.create(req.body);
+        const {
+            title,
+            description,
+            cuisine,
+            totalCookingTime,
+            servings,
+            isPremium,
+            ingredients,
+            steps,
+            dietaryLabels,
+            externalMediaLinks,
+            reviews
+        } = req.body;
 
+        // extract id of chef
+        const chefId = req.user._id;
+
+        // verify the recipe object for required fields
+        if (
+            !(
+                title &&
+                description &&
+                cuisine &&
+                totalCookingTime &&
+                servings &&
+                ingredients &&
+                steps &&
+                dietaryLabels
+            )
+        ) {
+            throw new ApiError(400, "All fields are required");
+        }
+        // create a new recipe object and save the recipe object to the database
+        const newRecipe = await Recipe.create({
+            title,
+            description,
+            cuisine,
+            chefId,
+            totalCookingTime,
+            servings,
+            isPremium,
+            ingredients,
+            steps,
+            dietaryLabels,
+            externalMediaLinks,
+            reviews
+        });
+
+        // respond with the newly created recipe object
         return res
             .status(201)
-            .json(new ApiResponse(201, "Recipe added successfully", recipe));
+            .json(
+                new ApiResponse(201, "Recipe added successfully", newRecipe)
+            );
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
@@ -24,7 +73,7 @@ const addRecipe = async (req, res) => {
 };
 
 // READ All Recipes (Not Implemented)
-const getAllRecipes = async (req, res) => {
+const getAllRecipes = async (req, res, next) => {
     try {
         // const recipes = await Recipe.find().populate("chefId", "name email");
     } catch (error) {
@@ -42,7 +91,7 @@ const getAllRecipes = async (req, res) => {
 };
 
 // READ Single Recipe (OK)
-const getRecipeById = async (req, res) => {
+const getRecipeById = async (req, res, next) => {
     try {
         // const recipe = await Recipe.findById(req.params.id).populate("chefId", "name email");
         const recipe = await Recipe.findById(req.params.id);
@@ -52,14 +101,18 @@ const getRecipeById = async (req, res) => {
             //     message: "Recipe not found",
             // });
 
-            return res.status(404).json(new ApiResponse(404, "Recipe not found"));
+            return res
+                .status(404)
+                .json(new ApiResponse(404, "Recipe not found"));
         }
         // return res.status(200).json({
         //     success: true,
         //     data: recipe,
         // });
 
-        return res.status(200).json(new ApiResponse(200, "Recipe found", recipe));
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Recipe found", recipe));
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
@@ -75,7 +128,7 @@ const getRecipeById = async (req, res) => {
 };
 
 // UPDATE Recipe (Check Required)
-const updateRecipe = async (req, res) => {
+const updateRecipe = async (req, res, next) => {
     try {
         const recipe = await Recipe.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -86,7 +139,9 @@ const updateRecipe = async (req, res) => {
             //     success: false,
             //     message: "Recipe not found",
             // });
-            return res.status(404).json(new ApiResponse(404, "Recipe not found"));
+            return res
+                .status(404)
+                .json(new ApiResponse(404, "Recipe not found"));
         }
         // return res.status(200).json({
         //     success: true,
@@ -94,7 +149,9 @@ const updateRecipe = async (req, res) => {
         //     data: recipe,
         // });
 
-        return res.status(200).json(new ApiResponse(200, "Recipe updated successfully", recipe));
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Recipe updated successfully", recipe));
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
@@ -103,12 +160,14 @@ const updateRecipe = async (req, res) => {
         }
 
         // For all other errors, send a generic error message
-        return next(new ApiError(500, "Something went wrong during recipe update"));
+        return next(
+            new ApiError(500, "Something went wrong during recipe update")
+        );
     }
 };
 
 // DELETE Recipe (OK)
-const deleteRecipe = async (req, res) => {
+const deleteRecipe = async (req, res, next) => {
     try {
         const recipe = await Recipe.findByIdAndDelete(req.params.id);
         if (!recipe) {
@@ -116,13 +175,17 @@ const deleteRecipe = async (req, res) => {
             //     success: false,
             //     message: "Recipe not found",
             // });
-            return res.status(404).json(new ApiResponse(404, "Recipe not found"));
+            return res
+                .status(404)
+                .json(new ApiResponse(404, "Recipe not found"));
         }
         // return res.status(200).json({
         //     success: true,
         //     message: "Recipe deleted successfully",
         // });
-        return res.status(200).json(new ApiResponse(200, "Recipe deleted successfully"));
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Recipe deleted successfully"));
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
@@ -131,7 +194,9 @@ const deleteRecipe = async (req, res) => {
         }
 
         // For all other errors, send a generic error message
-        return next(new ApiError(500, "Something went wrong during recipe deletion"));
+        return next(
+            new ApiError(500, "Something went wrong during recipe deletion")
+        );
     }
 };
 
