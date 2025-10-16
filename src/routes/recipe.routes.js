@@ -16,7 +16,7 @@ recipeRouter
     .post(isLoggedIn, isAuthorized("CHEF"), validateRecipe, addRecipe);
 
 // READ
-recipeRouter.route("/recipes").get(getAllRecipes);
+recipeRouter.route("/recipes").get(isLoggedIn, getAllRecipes);
 
 // when a user clicks on a recipe from the list to view the detailed recipe
 recipeRouter.route("/recipes/:id").get(getRecipeById);

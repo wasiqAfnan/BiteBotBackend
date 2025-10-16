@@ -1,43 +1,9 @@
 import { Recipe } from "../models/recipe.models.js";
 import { ApiResponse, ApiError } from "../utils/index.js";
 
-// CREATE Recipe (Check Required)
+// CREATE Recipe (Ok)
 const addRecipe = async (req, res, next) => {
     try {
-        // const {
-        //     title,
-        //     description,
-        //     cuisine,
-        //     totalCookingTime,
-        //     servings,
-        //     isPremium,
-        //     ingredients,
-        //     steps,
-        //     dietaryLabels,
-        //     externalMediaLinks,
-        //     reviews
-        // } = req.body;
-
-        // extract id of chef
-        // const chefId = req.user._id;
-
-        // verify the recipe object for required fields
-        // if (
-        //     !(
-        //         title &&
-        //         description &&
-        //         cuisine &&
-        //         totalCookingTime &&
-        //         servings &&
-        //         ingredients &&
-        //         steps &&
-        //         dietaryLabels
-        //     )
-        // ) {
-        //     throw new ApiError(400, "All fields are required");
-        // }
-        // create a new recipe object and save the recipe object to the database
-
         const payload = {
             ...req.body, // all validated, allowed fields
             chefId: req.user._id, // override or inject server‐set field
@@ -65,17 +31,36 @@ const addRecipe = async (req, res, next) => {
 // READ All Recipes (Not Implemented)
 const getAllRecipes = async (req, res, next) => {
     try {
-        // const recipes = await Recipe.find().populate("chefId", "name email");
-    } catch (error) {
-        console.log("Some Error Occured: ", error);
-        // If the error is already an instance of ApiError, pass it to the error handler
-        if (error instanceof ApiError) {
-            return next(error);
+        // Fetch all recipes sorted by newest first
+        // const recipes = await Recipe.find().sort({ createdAt: -1 }).lean();
+
+        // Extract pagination parameters from query string
+        const startIndex = parseInt(req.query.startIndex) || 0;
+        const limit = parseInt(req.query.limit) || 10;
+
+        // Validate pagination parameters
+        if (startIndex < 0 || limit < 1) {
+            return next(new ApiError(400, "Invalid pagination parameters"));
         }
 
-        // For all other errors, send a generic error message
+        // Fetch recipes with pagination
+        const recipes = await Recipe.find()
+            .sort({ createdAt: 1 })
+            .skip(startIndex)
+            .limit(limit)
+            .lean();
+        
+        return res.status(200).json(
+            new ApiResponse(200, "Recipes fetched successfully", {
+                recipes,
+            })
+        );
+    } catch (error) {
+        console.log("GetAllRecipes Error:", error);
         return next(
-            new ApiError(500, "Something went wrong during fetching recipe")
+            error instanceof ApiError
+                ? error
+                : new ApiError(500, "Something went wrong fetching recipes")
         );
     }
 };
