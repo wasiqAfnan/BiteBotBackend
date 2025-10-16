@@ -49,7 +49,7 @@ const getAllRecipes = async (req, res, next) => {
             .skip(startIndex)
             .limit(limit)
             .lean();
-        
+
         return res.status(200).json(
             new ApiResponse(200, "Recipes fetched successfully", {
                 recipes,

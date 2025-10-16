@@ -348,3 +348,21 @@ export const handleUpdateProfile = async (req, res, next) => {
         );
     }
 };
+
+export const handleGetUserById = async (req, res, next) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+        return res.status(200).json(new ApiResponse(200, "User fetched successfully", user));
+    } catch (error) {
+        console.log("Some error occured: ", error);
+        
+        // If the error is already an instance of ApiError, pass it to the error handler
+        error instanceof ApiError 
+            ? next(error) 
+            : next(new ApiError(500, "Something went wrong during fetching user"));
+    }
+};

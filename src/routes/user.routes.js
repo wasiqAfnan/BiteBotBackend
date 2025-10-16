@@ -9,6 +9,7 @@ import {
     handleForgetPassword,
     handleGetProfile,
     handleUpdateProfile,
+    handleGetUserById,
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
@@ -31,5 +32,6 @@ userRoutes.route("/forget-password").post(handleForgetPassword); //Not implement
 // profile routes
 userRoutes.route("/me").get(isLoggedIn, handleGetProfile);
 userRoutes.route("/update").patch(isLoggedIn, handleUpdateProfile);
+userRoutes.route("/:id").get(isLoggedIn, handleGetUserById);
 
 export default userRoutes;
