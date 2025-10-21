@@ -4,7 +4,6 @@ import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 
 const router = express.Router();
 
-// router.get("/chat", isLoggedIn, recipeChat);
-router.post("/chat", recipeChat);
+router.get("/chat", isLoggedIn, recipeChat);
 
 export default router;

@@ -13,47 +13,50 @@ const searchRecipesTool = tool({
     parameters: z.object({
         query: z.string().nullable().default(null),
         cuisine: z.string().nullable().default(null),
-        ingredient: z.string().nullable().default(null), // fix array
+        ingredient: z.array(z.string()).nullable().default(null),
         dietaryLabels: z.array(z.string()).nullable().default(null),
         limit: z.number().default(5),
     }),
     async execute(input) {
+        console.log(input);
         const { query, cuisine, ingredient, dietaryLabels, limit } =
             input ?? {};
-        if (!query && !cuisine && !ingredient && !dietaryLabels) {
-            return [];
-        }
 
-        const match = {};
+        // Build an array of independent filter conditions (OR semantics)
+        const orConditions = [];
 
         if (query) {
             const r = new RegExp(escapeRegex(query), "i");
-            match.$or = [{ title: r }, { description: r }];
+            orConditions.push({ $or: [{ title: r }, { description: r }] });
         }
 
         if (cuisine) {
-            match.cuisine = new RegExp(escapeRegex(cuisine), "i");
+            orConditions.push({
+                cuisine: new RegExp(escapeRegex(cuisine), "i"),
+            });
         }
 
-        if (ingredient) {
-            if (Array.isArray(ingredient)) {
-                match["ingredients.name"] = {
+        if (Array.isArray(ingredient) && ingredient.length) {
+            orConditions.push({
+                "ingredients.name": {
                     $in: ingredient.map((s) => new RegExp(escapeRegex(s), "i")),
-                };
-            } else {
-                match["ingredients.name"] = new RegExp(
-                    escapeRegex(ingredient),
-                    "i"
-                );
-            }
+                },
+            });
         }
 
         if (Array.isArray(dietaryLabels) && dietaryLabels.length) {
-            match.dietaryLabels = { $in: dietaryLabels };
+            orConditions.push({ dietaryLabels: { $in: dietaryLabels } });
         }
 
+        // If no filters provided, return empty (same guard as you had)
+        if (!orConditions.length) return [];
+
+        // If only one condition, use it directly; otherwise use $or
+        const matchStage =
+            orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
+
         const pipeline = [
-            { $match: match },
+            { $match: matchStage },
             {
                 $project: {
                     _id: 1,
@@ -65,7 +68,9 @@ const searchRecipesTool = tool({
             { $limit: limit },
         ];
 
-        return await Recipe.aggregate(pipeline).exec();
+        const results = await Recipe.aggregate(pipeline).exec();
+        console.log(results);
+        return results;
     },
 });
 
