@@ -31,27 +31,142 @@ const addRecipe = async (req, res, next) => {
 // READ All Recipes (Not Implemented)
 const getAllRecipes = async (req, res, next) => {
     try {
-        // Fetch all recipes sorted by newest first
-        // const recipes = await Recipe.find().sort({ createdAt: -1 }).lean();
-
-        // Extract pagination parameters from query string
         const startIndex = parseInt(req.query.startIndex) || 0;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 8;
 
-        // Validate pagination parameters
+        // Multiple filter support
+        const filters = {
+            trending: req.query.trending === "true",
+            fresh: req.query.fresh === "true",
+            quick: req.query.quick === "true",
+            recommended: req.query.recommended === "true",
+            premium: req.query.premium === "true",
+            cuisine: req.query.cuisine,
+            dietaryPreference: req.query.dietaryPreference
+                ? req.query.dietaryPreference
+                      .split(",")
+                      .filter((pref) => pref.trim() !== "")
+                      .map((pref) => pref.trim().toLowerCase())
+                : [],
+            minPrice: req.query.minPrice
+                ? parseFloat(req.query.minPrice)
+                : null,
+            maxPrice: req.query.maxPrice
+                ? parseFloat(req.query.maxPrice)
+                : null,
+            rating: req.query.rating ? parseFloat(req.query.rating) : null, // single rating value
+        };
+
+        // Pagination validation
         if (startIndex < 0 || limit < 1) {
             return next(new ApiError(400, "Invalid pagination parameters"));
         }
 
-        // Fetch recipes with pagination
-        const recipes = await Recipe.find()
-            .sort({ createdAt: 1 })
-            .skip(startIndex)
-            .limit(limit)
-            .lean();
+        let pipeline = [];
+        let matchStage = {};
 
+        // Premium recipes only
+        if (filters.premium) {
+            matchStage.isPremium = true;
+        }
+
+        // Recommended filter with soft matching
+        if (filters.recommended) {
+            if (filters.cuisine)
+                matchStage.cuisine = {
+                    $regex: new RegExp(filters.cuisine, "i"),
+                };
+
+            if (filters.dietaryPreference.length > 0)
+                matchStage.dietaryLabels = {
+                    $in: filters.dietaryPreference,
+                };
+        }
+
+        // Cuisine filter
+        if (filters.cuisine && !filters.recommended) {
+            matchStage.cuisine = filters.cuisine;
+        }
+
+        // Dietary Preference filter
+        if (filters.dietaryPreference.length > 0 && !filters.recommended) {
+            matchStage.dietaryLabels = { $in: filters.dietaryPreference };
+        }
+
+        // Trending filter (last 30 days)
+        if (filters.trending) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            matchStage.createdAt = { $gte: thirtyDaysAgo };
+        }
+
+        // QUICK RECIPES: Auto filter for fast recipes (no frontend input)
+        if (filters.quick) {
+            matchStage.totalCookingTime = { $lte: 30 }; // recipes ≤ 30 mins
+        }
+
+        // Price Range Filter
+        if (filters.minPrice !== null || filters.maxPrice !== null) {
+            matchStage.price = {};
+            if (filters.minPrice !== null)
+                matchStage.price.$gte = filters.minPrice;
+            if (filters.maxPrice !== null)
+                matchStage.price.$lte = filters.maxPrice;
+        }
+
+        // Add match stage if conditions exist
+        if (Object.keys(matchStage).length > 0) {
+            pipeline.push({ $match: matchStage });
+        }
+
+        // Rating filter (recipes with average rating >= given rating)
+        if (filters.rating !== null) {
+            pipeline.push({
+                $addFields: {
+                    avgRating: { $avg: "$reviews.rating" },
+                },
+            });
+
+            pipeline.push({
+                $match: {
+                    avgRating: { $gte: filters.rating },
+                },
+            });
+        }
+
+        // Add like count field safely
+        // pipeline.push({
+        //     $addFields: {
+        //         likeCountNum: { $size: { $ifNull: ["$likeCount", []] } },
+        //     },
+        // });
+
+        // Sorting logic
+        let sortStage = {};
+        if (filters.trending || filters.premium || filters.recommended) {
+            sortStage = { likeCountNum: -1, createdAt: -1 };
+        } else if (filters.quick) {
+            sortStage = { totalCookingTime: 1, createdAt: -1 };
+        } else if (filters.fresh) {
+            sortStage = { createdAt: -1 };
+        }
+        // Add sort stage if conditions exist
+        if (Object.keys(sortStage).length > 0) {
+            pipeline.push({ $sort: sortStage });
+        }
+
+        // Pagination
+        pipeline.push({ $skip: startIndex });
+        pipeline.push({ $limit: limit });
+
+        // Execute aggregation
+        const recipes = await Recipe.aggregate(pipeline);
+        const count = recipes.length;
+
+        // Final response
         return res.status(200).json(
             new ApiResponse(200, "Recipes fetched successfully", {
+                count,
                 recipes,
             })
         );
@@ -69,22 +184,15 @@ const getAllRecipes = async (req, res, next) => {
 const getRecipeById = async (req, res, next) => {
     try {
         // const recipe = await Recipe.findById(req.params.id).populate("chefId", "name email");
-        const recipe = await Recipe.findById(req.params.id);
-        if (!recipe) {
-            // return res.status(404).json({
-            //     success: false,
-            //     message: "Recipe not found",
-            // });
+        const recipe = await Recipe.findById(req.params.id)
+            .populate("chefId")
+            .populate("likeCount");
 
+        if (!recipe) {
             return res
                 .status(404)
                 .json(new ApiResponse(404, "Recipe not found"));
         }
-        // return res.status(200).json({
-        //     success: true,
-        //     data: recipe,
-        // });
-
         return res
             .status(200)
             .json(new ApiResponse(200, "Recipe found", recipe));

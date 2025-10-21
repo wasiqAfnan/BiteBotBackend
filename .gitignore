@@ -133,4 +133,6 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
-package-lock.json.env 
+package-lock.json.env
+
+userApi.rest

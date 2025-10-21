@@ -150,6 +150,13 @@ const userSchema = new mongoose.Schema(
                     message: String,
                 },
             ],
+
+            subscribers: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                },
+            ],
         },
 
         // Embedded favourites array (mainly for normal users)

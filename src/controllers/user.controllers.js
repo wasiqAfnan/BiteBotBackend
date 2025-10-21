@@ -110,7 +110,12 @@ export const handleLogin = async (req, res, next) => {
         }
 
         // validate if user exists
-        let user = await User.findOne({ email }).select("+password");
+        let user = await User.findOne({ email })
+        .select("+password")
+        .populate("profile.subscribed")
+        .populate("favourites")
+        .populate("chefProfile.recipes")
+        .populate("reviewsGiven.recipeId");
 
         if (!user) {
             throw new ApiError(
