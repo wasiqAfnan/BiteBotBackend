@@ -105,41 +105,74 @@ const getAllRecipes = async (req, res, next) => {
             matchStage.totalCookingTime = { $lte: 30 }; // recipes ≤ 30 mins
         }
 
-        // Price Range Filter
-        if (filters.minPrice !== null || filters.maxPrice !== null) {
-            matchStage.price = {};
-            if (filters.minPrice !== null)
-                matchStage.price.$gte = filters.minPrice;
-            if (filters.maxPrice !== null)
-                matchStage.price.$lte = filters.maxPrice;
-        }
-
         // Add match stage if conditions exist
         if (Object.keys(matchStage).length > 0) {
             pipeline.push({ $match: matchStage });
         }
 
+        // ✅ Add all calculated fields upfront (industry standard)
+        pipeline.push({
+            $addFields: {
+                // Total ingredient price
+                totalPrice: {
+                    $sum: {
+                        $map: {
+                            input: "$ingredients",
+                            as: "ingredient",
+                            in: {
+                                $multiply: [
+                                    { $ifNull: ["$$ingredient.quantity", 0] },
+                                    {
+                                        $ifNull: [
+                                            "$$ingredient.marketPrice",
+                                            0,
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+                // Average rating (0 if no reviews)
+                avgRating: {
+                    $ifNull: [{ $avg: "$reviews.rating" }, 0],
+                },
+                // Like count (needed for trending/premium/recommended sorting)
+                likeCountNum: {
+                    $size: { $ifNull: ["$likeCount", []] },
+                },
+            },
+        });
+
+        // Filter by price range if provided
+        if (filters.minPrice !== null || filters.maxPrice !== null) {
+            let priceMatchStage = {};
+
+            if (filters.minPrice !== null && filters.maxPrice !== null) {
+                // Both min and max provided
+                priceMatchStage.totalPrice = {
+                    $gte: filters.minPrice,
+                    $lte: filters.maxPrice,
+                };
+            } else if (filters.minPrice !== null) {
+                // Only min provided
+                priceMatchStage.totalPrice = { $gte: filters.minPrice };
+            } else {
+                // Only max provided
+                priceMatchStage.totalPrice = { $lte: filters.maxPrice };
+            }
+
+            pipeline.push({ $match: priceMatchStage });
+        }
+
         // Rating filter (recipes with average rating >= given rating)
         if (filters.rating !== null) {
             pipeline.push({
-                $addFields: {
-                    avgRating: { $avg: "$reviews.rating" },
-                },
-            });
-
-            pipeline.push({
                 $match: {
-                    avgRating: { $gte: filters.rating },
-                },
+                    avgRating: { $gte: filters.rating }
+                }
             });
         }
-
-        // Add like count field safely
-        // pipeline.push({
-        //     $addFields: {
-        //         likeCountNum: { $size: { $ifNull: ["$likeCount", []] } },
-        //     },
-        // });
 
         // Sorting logic
         let sortStage = {};
@@ -148,8 +181,9 @@ const getAllRecipes = async (req, res, next) => {
         } else if (filters.quick) {
             sortStage = { totalCookingTime: 1, createdAt: -1 };
         } else if (filters.fresh) {
-            sortStage = { createdAt: -1 };
+            sortStage = { createdAt: -1 };  
         }
+        
         // Add sort stage if conditions exist
         if (Object.keys(sortStage).length > 0) {
             pipeline.push({ $sort: sortStage });
