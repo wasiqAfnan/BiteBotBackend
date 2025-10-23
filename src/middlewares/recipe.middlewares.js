@@ -1,4 +1,5 @@
 import Joi from "joi";
+import User from "../models/user.models.js";
 
 export const validateRecipe = (req, res, next) => {
     try {
@@ -86,6 +87,53 @@ export const validateRecipe = (req, res, next) => {
         // For all other errors, send a generic error message
         return next(
             new ApiError(500, "Something went wrong during recipe validation")
+        );
+    }
+};
+
+export const isSubscribed = async (req, res, next) => {
+    try {
+        // Expecting: userId, chefId, isPremium from frontend
+        const { chefId, isPremium } = req.body;
+        const userId = req.user._id;
+
+        // If required fields missing
+        if (!chefId || !isPremium) {
+            throw new ApiError(400, "All fields are required to check subscription status");
+        }
+
+        // If recipe is NOT premium, no restriction
+        if (!isPremium) {
+            return next();
+        }        
+
+        // Fetch user and check subscription
+        const user = await User.findById(userId);
+
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        // Check if user has subscribed to this chef
+        const subscriptionStatus = user.profile.subscribed.some(
+            (id) => id.toString() === chefId.toString()
+        );
+
+        if (!subscriptionStatus) {
+            throw new ApiError(
+                403,
+                "Access denied: You need to subscribe to this chef to view premium recipes"
+            );
+        }
+
+        // All good — user has access
+        next();
+    } catch (error) {
+        console.log("isSubscribed middleware error: ", error);
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(500, "Something went wrong while verifying subscription status")
         );
     }
 };

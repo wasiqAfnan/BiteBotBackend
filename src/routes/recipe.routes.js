@@ -6,7 +6,10 @@ import {
     updateRecipe,
     deleteRecipe,
 } from "../controllers/recipe.controllers.js";
-import { validateRecipe } from "../middlewares/recipe.middlewares.js";
+import {
+    isSubscribed,
+    validateRecipe,
+} from "../middlewares/recipe.middlewares.js";
 import { isAuthorized, isLoggedIn } from "../middlewares/auth.middlewares.js";
 
 const recipeRouter = Router();
@@ -14,11 +17,11 @@ const recipeRouter = Router();
 recipeRouter
     .route("/")
     .post(isLoggedIn, isAuthorized("CHEF"), validateRecipe, addRecipe)
-    .get(isLoggedIn, getAllRecipes);
+    .get(getAllRecipes);
 
 recipeRouter
     .route("/:id")
-    .get(getRecipeById)
+    .get(isLoggedIn, isSubscribed, getRecipeById)
     .put(validateRecipe, updateRecipe)
     .delete(deleteRecipe);
 

@@ -207,16 +207,14 @@ const getAllRecipes = async (req, res, next) => {
 // READ Single Recipe (OK)
 const getRecipeById = async (req, res, next) => {
     try {
-        // const recipe = await Recipe.findById(req.params.id).populate("chefId", "name email");
         const recipe = await Recipe.findById(req.params.id)
             .populate("chefId")
             .populate("likeCount");
 
         if (!recipe) {
-            return res
-                .status(404)
-                .json(new ApiResponse(404, "Recipe not found"));
+            throw new ApiError(404, "Recipe not found");
         }
+
         return res
             .status(200)
             .json(new ApiResponse(200, "Recipe found", recipe));
