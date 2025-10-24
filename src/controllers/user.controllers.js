@@ -115,7 +115,6 @@ export const handleLogin = async (req, res, next) => {
             .populate("profile.subscribed")
             .populate("favourites")
             .populate("chefProfile.recipes")
-            .populate("reviewsGiven.recipeId");
 
         if (!user) {
             throw new ApiError(
@@ -276,7 +275,6 @@ export const handleGetProfile = async (req, res, next) => {
             .populate("favourites")
             .populate("profile.subscribed")
             .populate("chefProfile.recipes")
-            .populate("reviewsGiven.recipeId");
             
         return res
             .status(200)
@@ -376,7 +374,6 @@ export const handleGetUserById = async (req, res, next) => {
             .populate("favourites")
             .populate("profile.subscribed")
             .populate("chefProfile.recipes")
-            .populate("reviewsGiven.recipeId");
 
         if (!user) {
             throw new ApiError(404, "User not found");
