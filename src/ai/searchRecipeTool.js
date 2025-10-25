@@ -2,42 +2,43 @@ import { tool } from "@openai/agents";
 import { z } from "zod";
 import { Recipe } from "../models/recipe.models.js";
 
+// Utility function to escape special characters for use in regular expressions
 function escapeRegex(text = "") {
     return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Define a tool for searching recipes in MongoDB
 const searchRecipesTool = tool({
     name: "search_recipes",
     description:
         "Search recipes in MongoDB using an aggregation pipeline. All params optional. Returns an array of matching recipe plain objects.",
+
+    // Input validation schema using zod
     parameters: z.object({
-        query: z.string().nullable().default(null),
-        cuisine: z.string().nullable().default(null),
-        ingredient: z.array(z.string()).nullable().default(null),
-        dietaryLabels: z.array(z.string()).nullable().default(null),
-        limit: z.number().default(5),
+        query: z.string().nullable().default(null), // Text search in title or description
+        cuisine: z.string().nullable().default(null), // Filter by cuisine type
+        ingredient: z.array(z.string()).nullable().default(null), // Filter by ingredients
+        dietaryLabels: z.array(z.string()).nullable().default(null), // Filter by dietary labels
+        limit: z.number().default(5), // Max number of results
     }),
+
+    // Main execution logic for the tool
     async execute(input) {
-        console.log(input);
+        console.log(input); // Log input for debugging
         const { query, cuisine, ingredient, dietaryLabels, limit } =
             input ?? {};
 
-        // Build an array of independent filter conditions (OR semantics)
-        const orConditions = [];
-
-        if (query) {
-            const r = new RegExp(escapeRegex(query), "i");
-            orConditions.push({ $or: [{ title: r }, { description: r }] });
-        }
+        // Build MongoDB match conditions dynamically based on provided input
+        const matchConditions = [];
 
         if (cuisine) {
-            orConditions.push({
+            matchConditions.push({
                 cuisine: new RegExp(escapeRegex(cuisine), "i"),
             });
         }
 
         if (Array.isArray(ingredient) && ingredient.length) {
-            orConditions.push({
+            matchConditions.push({
                 "ingredients.name": {
                     $in: ingredient.map((s) => new RegExp(escapeRegex(s), "i")),
                 },
@@ -45,18 +46,20 @@ const searchRecipesTool = tool({
         }
 
         if (Array.isArray(dietaryLabels) && dietaryLabels.length) {
-            orConditions.push({ dietaryLabels: { $in: dietaryLabels } });
+            matchConditions.push({ dietaryLabels: { $all: dietaryLabels } });
         }
 
-        // If no filters provided, return empty (same guard as you had)
-        if (!orConditions.length) return [];
+        if (query) {
+            const r = new RegExp(escapeRegex(query), "i");
+            matchConditions.push({ $or: [{ title: r }, { description: r }] });
+        }
 
-        // If only one condition, use it directly; otherwise use $or
-        const matchStage =
-            orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
+        // If no filters provided, return empty array
+        if (!matchConditions.length) return [];
 
+        // Build aggregation pipeline to fetch matching recipes
         const pipeline = [
-            { $match: matchStage },
+            { $match: { $and: matchConditions } },
             {
                 $project: {
                     _id: 1,
@@ -68,8 +71,9 @@ const searchRecipesTool = tool({
             { $limit: limit },
         ];
 
+        // Execute aggregation pipeline and return results
         const results = await Recipe.aggregate(pipeline).exec();
-        console.log(results);
+        console.log(results); // Log results for debugging
         return results;
     },
 });
