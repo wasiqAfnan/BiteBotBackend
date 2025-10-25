@@ -10,6 +10,8 @@ import {
     handleGetProfile,
     handleUpdateProfile,
     handleGetUserById,
+    handleSubscribeToChef,
+    handleUnsubscribeFromChef,
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
@@ -33,5 +35,9 @@ userRoutes.route("/forget-password").post(handleForgetPassword); //Not implement
 userRoutes.route("/me").get(isLoggedIn, handleGetProfile);
 userRoutes.route("/update").patch(isLoggedIn, handleUpdateProfile);
 userRoutes.route("/:id").get(handleGetUserById);
+
+// subscription routes
+userRoutes.route("/subscribe/:chefId").post(isLoggedIn, handleSubscribeToChef);
+userRoutes.route("/unsubscribe/:chefId").post(isLoggedIn, handleUnsubscribeFromChef);
 
 export default userRoutes;

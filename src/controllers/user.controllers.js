@@ -114,7 +114,7 @@ export const handleLogin = async (req, res, next) => {
             .select("+password")
             .populate("profile.subscribed")
             .populate("favourites")
-            .populate("chefProfile.recipes")
+            .populate("chefProfile.recipes");
 
         if (!user) {
             throw new ApiError(
@@ -274,8 +274,8 @@ export const handleGetProfile = async (req, res, next) => {
         const user = await User.findById(req.user._id)
             .populate("favourites")
             .populate("profile.subscribed")
-            .populate("chefProfile.recipes")
-            
+            .populate("chefProfile.recipes");
+
         return res
             .status(200)
             .json(
@@ -373,7 +373,7 @@ export const handleGetUserById = async (req, res, next) => {
         const user = await User.findById(userId)
             .populate("favourites")
             .populate("profile.subscribed")
-            .populate("chefProfile.recipes")
+            .populate("chefProfile.recipes");
 
         if (!user) {
             throw new ApiError(404, "User not found");
@@ -392,3 +392,93 @@ export const handleGetUserById = async (req, res, next) => {
               );
     }
 };
+
+export const handleSubscribeToChef = async (req, res, next) => {
+    try {
+        const { chefId } = req.params;
+        const userId = req.user._id;
+
+        if (userId.toString() === chefId.toString()) {
+            throw new ApiError(400, "You cannot subscribe to yourself");
+        }
+
+        const user = await User.findById(userId);
+        const chef = await User.findById(chefId);
+
+        if (!chef || chef.role !== "CHEF") {
+            throw new ApiError(404, "Chef not found");
+        }
+
+        // check if already subscribed
+        if (user.profile.subscribed.includes(chefId)) {
+            throw new ApiError(400, "Already subscribed to this chef");
+        }
+
+        // push subscription
+        user.profile.subscribed.push(chefId);
+        chef.chefProfile.subscribers.push(userId);
+
+        await user.save({ validateBeforeSave: false });
+        await chef.save({ validateBeforeSave: false });
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(200, "Successfully subscribed", {
+                    userId,
+                    chefId,
+                })
+            );
+    } catch (error) {
+        console.log("Some error occured: ", error);
+
+        // If the error is already an instance of ApiError, pass it to the error handler
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(500, "Something went wrong during subscribing chef")
+              );
+    }
+};
+
+export const handleUnsubscribeFromChef = async (req, res, next) => {
+    try {
+        const { chefId } = req.params;
+        const userId = req.user._id;
+
+        const user = await User.findById(userId);
+        const chef = await User.findById(chefId);
+
+        if (!chef || chef.role !== "CHEF") {
+            throw new ApiError(404, "Chef not found");
+        }
+
+        // Remove subscription
+        user.profile.subscribed = user.profile.subscribed.filter(
+            (id) => id.toString() !== chefId.toString()
+        );
+        chef.chefProfile.subscribers = chef.chefProfile.subscribers.filter(
+            (id) => id.toString() !== userId.toString()
+        );
+
+        await user.save({ validateBeforeSave: false });
+        await chef.save({ validateBeforeSave: false });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Unsubscribed successfully", {
+                chefId,
+                userId,
+            }));
+    } catch (error) {
+        console.log("Some error occured: ", error);
+
+        // If the error is already an instance of ApiError, pass it to the error handler
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(500, "Something went wrong during unsubscribing chef")
+              );
+    }
+};
+
