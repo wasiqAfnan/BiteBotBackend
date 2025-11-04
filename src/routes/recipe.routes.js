@@ -21,7 +21,7 @@ recipeRouter
 
 recipeRouter
     .route("/:id")
-    .get(isLoggedIn, isSubscribed, getRecipeById)
+    .get(isLoggedIn, getRecipeById)
     .put(validateRecipe, updateRecipe)
     .delete(deleteRecipe);
 

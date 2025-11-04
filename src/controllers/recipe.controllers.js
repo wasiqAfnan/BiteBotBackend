@@ -1,7 +1,7 @@
 import { Recipe } from "../models/recipe.models.js";
 import { ApiResponse, ApiError } from "../utils/index.js";
 
-// CREATE Recipe (Ok)
+// CREATE Recipe
 const addRecipe = async (req, res, next) => {
     try {
         const payload = {
@@ -28,7 +28,7 @@ const addRecipe = async (req, res, next) => {
     }
 };
 
-// READ All Recipes (Not Implemented)
+// READ All Recipes (Not in used)
 const getAllRecipes = async (req, res, next) => {
     try {
         const startIndex = parseInt(req.query.startIndex) || 0;
@@ -207,12 +207,23 @@ const getAllRecipes = async (req, res, next) => {
 // READ Single Recipe (OK)
 const getRecipeById = async (req, res, next) => {
     try {
+        // const { id } = req.params;
+        // console.log(id);
         const recipe = await Recipe.findById(req.params.id)
-            .populate("chefId")
-            .populate("likeCount");
-
+            .populate("chefId");
+            
         if (!recipe) {
             throw new ApiError(404, "Recipe not found");
+        }
+        console.log("isuSubscribed: ", req.user.profile.subscribed.includes(recipe.chefId));
+        if (
+            recipe.isPremium &&
+            !req.user.profile.subscribed.includes(recipe.chefId)
+        ) {
+            throw new ApiError(
+                403,
+                "Access denied: You need to subscribe to this chef to view premium recipes"
+            );
         }
 
         return res
