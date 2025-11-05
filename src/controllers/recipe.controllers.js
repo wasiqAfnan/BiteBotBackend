@@ -207,15 +207,13 @@ const getAllRecipes = async (req, res, next) => {
 // READ Single Recipe (OK)
 const getRecipeById = async (req, res, next) => {
     try {
-        // const { id } = req.params;
-        // console.log(id);
         const recipe = await Recipe.findById(req.params.id)
-            .populate("chefId");
+            // .populate("chefId");
             
         if (!recipe) {
             throw new ApiError(404, "Recipe not found");
         }
-        console.log("isuSubscribed: ", req.user.profile.subscribed.includes(recipe.chefId));
+        
         if (
             recipe.isPremium &&
             !req.user.profile.subscribed.includes(recipe.chefId)
