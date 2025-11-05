@@ -113,7 +113,6 @@ export const handleLogin = async (req, res, next) => {
         let user = await User.findOne({ email })
             .select("+password")
             .populate("profile.subscribed")
-            .populate("favourites")
             .populate("chefProfile.recipes");
 
         if (!user) {
@@ -272,7 +271,6 @@ export const handleForgetPassword = async (req, res, next) => {};
 export const handleGetProfile = async (req, res, next) => {
     try {
         const user = await User.findById(req.user._id)
-            .populate("favourites")
             .populate("profile.subscribed")
             .populate("chefProfile.recipes");
 
@@ -371,7 +369,6 @@ export const handleGetUserById = async (req, res, next) => {
         // populate function: Instead of just giving the ObjectId, replace it with the actual document from the referenced collection.
         // This is useful when you want to retrieve a document from a referenced collection and include its fields.
         const user = await User.findById(userId)
-            .populate("favourites")
             .populate("profile.subscribed")
             .populate("chefProfile.recipes");
 

@@ -207,8 +207,7 @@ const getAllRecipes = async (req, res, next) => {
 // READ Single Recipe (OK)
 const getRecipeById = async (req, res, next) => {
     try {
-        const recipe = await Recipe.findById(req.params.id)
-        .populate("chefId");
+        const recipe = await Recipe.findById(req.params.id).populate("chefId");
 
         if (!recipe) {
             throw new ApiError(404, "Recipe not found");
@@ -316,4 +315,60 @@ const deleteRecipe = async (req, res, next) => {
     }
 };
 
-export { addRecipe, getAllRecipes, getRecipeById, updateRecipe, deleteRecipe };
+const HandleGetTrendingRecipes = async (req, res, next) => {
+    try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trendingRecipes = await Recipe.aggregate([
+        // Only recipes created in last 30 days
+        {
+            $match: {
+            createdAt: { $lte: thirtyDaysAgo }
+            }
+        },
+
+        // Compute like count
+        {
+            $addFields: {
+            likeCountTotal: { $size: { $ifNull: ["$likeCount", []] } }
+            }
+        },
+
+        // Sort by likeCount desc
+        { $sort: { likeCountTotal: -1, createdAt: -1 } },
+
+        // Limit to 10
+        { $limit: 10 },
+    ]);
+console.log(trendingRecipes)
+
+    return res.status(200).json(new ApiResponse(200, "Trending recipes fetched successfully", trendingRecipes));
+
+  } catch (error) {
+    console.log("Error Occured While Fetching Trending Recipes: ", error);
+
+    return next(
+        error.instanceof(ApiError)
+            ? error
+            : new ApiError(500, "Something went wrong fetching trending recipes")
+    );
+  }
+};
+const HandleGetFreshRecipes = async (req, res, next) => {};
+const HandleGetQuickRecipes = async (req, res, next) => {};
+const HandleGetPremiumRecipes = async (req, res, next) => {};
+const HandleGetRecommendedRecipes = async (req, res, next) => {};
+
+export { 
+    addRecipe, 
+    getAllRecipes, 
+    getRecipeById, 
+    updateRecipe, 
+    deleteRecipe,
+    HandleGetTrendingRecipes,
+    HandleGetFreshRecipes,
+    HandleGetQuickRecipes,
+    HandleGetPremiumRecipes,
+    HandleGetRecommendedRecipes
+};

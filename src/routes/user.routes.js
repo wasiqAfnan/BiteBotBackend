@@ -37,7 +37,7 @@ userRoutes.route("/update").patch(isLoggedIn, handleUpdateProfile);
 userRoutes.route("/:id").get(handleGetUserById);
 
 // subscription routes
-userRoutes.route("/subscribe/:chefId").post(isLoggedIn, handleSubscribeToChef);
-userRoutes.route("/unsubscribe/:chefId").post(isLoggedIn, handleUnsubscribeFromChef);
+userRoutes.route("/subscribe/:chefId").get(isLoggedIn, handleSubscribeToChef);
+userRoutes.route("/unsubscribe/:chefId").get(isLoggedIn, handleUnsubscribeFromChef);
 
 export default userRoutes;
