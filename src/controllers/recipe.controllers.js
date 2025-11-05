@@ -97,7 +97,7 @@ const getAllRecipes = async (req, res, next) => {
         if (filters.trending) {
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            matchStage.createdAt = { $gte: thirtyDaysAgo };
+            matchStage.createdAt = { $lte: thirtyDaysAgo };
         }
 
         // QUICK RECIPES: Auto filter for fast recipes (no frontend input)
@@ -317,58 +317,70 @@ const deleteRecipe = async (req, res, next) => {
 
 const HandleGetTrendingRecipes = async (req, res, next) => {
     try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const limit = req.params.limit || 10;
 
-    const trendingRecipes = await Recipe.aggregate([
-        // Only recipes created in last 30 days
-        {
-            $match: {
-            createdAt: { $lte: thirtyDaysAgo }
-            }
-        },
+        const trendingRecipes = await Recipe.aggregate([
+            // Only recipes created in last 30 days
+            {
+                $match: {
+                    createdAt: { $gte: thirtyDaysAgo },
+                },
+            },
 
-        // Compute like count
-        {
-            $addFields: {
-            likeCountTotal: { $size: { $ifNull: ["$likeCount", []] } }
-            }
-        },
+            // Compute like count
+            {
+                $addFields: {
+                    likeCountTotal: { $size: { $ifNull: ["$likeCount", []] } },
+                },
+            },
 
-        // Sort by likeCount desc
-        { $sort: { likeCountTotal: -1, createdAt: -1 } },
+            // Sort by likeCount desc
+            { $sort: { likeCountTotal: -1, createdAt: -1 } },
 
-        // Limit to 10
-        { $limit: 10 },
-    ]);
-console.log(trendingRecipes)
+            // Limit to 10
+            { $limit: limit },
+        ]);
+        // console.log(likeCountTotal);
+        // console.log(trendingRecipes);
 
-    return res.status(200).json(new ApiResponse(200, "Trending recipes fetched successfully", trendingRecipes));
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Trending recipes fetched successfully",
+                    trendingRecipes
+                )
+            );
+    } catch (error) {
+        console.log("Error Occured While Fetching Trending Recipes: ", error);
 
-  } catch (error) {
-    console.log("Error Occured While Fetching Trending Recipes: ", error);
-
-    return next(
-        error.instanceof(ApiError)
-            ? error
-            : new ApiError(500, "Something went wrong fetching trending recipes")
-    );
-  }
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                      500,
+                      "Something went wrong fetching trending recipes"
+                  )
+        );
+    }
 };
 const HandleGetFreshRecipes = async (req, res, next) => {};
 const HandleGetQuickRecipes = async (req, res, next) => {};
 const HandleGetPremiumRecipes = async (req, res, next) => {};
 const HandleGetRecommendedRecipes = async (req, res, next) => {};
 
-export { 
-    addRecipe, 
-    getAllRecipes, 
-    getRecipeById, 
-    updateRecipe, 
+export {
+    addRecipe,
+    getAllRecipes,
+    getRecipeById,
+    updateRecipe,
     deleteRecipe,
     HandleGetTrendingRecipes,
     HandleGetFreshRecipes,
     HandleGetQuickRecipes,
     HandleGetPremiumRecipes,
-    HandleGetRecommendedRecipes
+    HandleGetRecommendedRecipes,
 };
