@@ -390,6 +390,34 @@ export const handleGetUserById = async (req, res, next) => {
     }
 };
 
+export const handleGetFavourites = async (req, res, next) => {
+    try {
+        const favourites = await User.findById(req.user._id)
+        .populate("favourites")
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Favourites fetched successfully",
+                    favourites
+                )
+            );
+    } catch (error) {
+        console.log("Some error occured: ", error);
+
+        // If the error is already an instance of ApiError, pass it to the error handler
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(
+                      500,
+                      "Something went wrong during fetching favourites"
+                  )
+              );
+    }
+};
+
 export const handleSubscribeToChef = async (req, res, next) => {
     try {
         const { chefId } = req.params;
@@ -418,14 +446,12 @@ export const handleSubscribeToChef = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
         await chef.save({ validateBeforeSave: false });
 
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(200, "Successfully subscribed", {
-                    userId,
-                    chefId,
-                })
-            );
+        return res.status(200).json(
+            new ApiResponse(200, "Successfully subscribed", {
+                userId,
+                chefId,
+            })
+        );
     } catch (error) {
         console.log("Some error occured: ", error);
 
@@ -433,7 +459,10 @@ export const handleSubscribeToChef = async (req, res, next) => {
         error instanceof ApiError
             ? next(error)
             : next(
-                  new ApiError(500, "Something went wrong during subscribing chef")
+                  new ApiError(
+                      500,
+                      "Something went wrong during subscribing chef"
+                  )
               );
     }
 };
@@ -461,12 +490,12 @@ export const handleUnsubscribeFromChef = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
         await chef.save({ validateBeforeSave: false });
 
-        return res
-            .status(200)
-            .json(new ApiResponse(200, "Unsubscribed successfully", {
+        return res.status(200).json(
+            new ApiResponse(200, "Unsubscribed successfully", {
                 chefId,
                 userId,
-            }));
+            })
+        );
     } catch (error) {
         console.log("Some error occured: ", error);
 
@@ -474,7 +503,10 @@ export const handleUnsubscribeFromChef = async (req, res, next) => {
         error instanceof ApiError
             ? next(error)
             : next(
-                  new ApiError(500, "Something went wrong during unsubscribing chef")
+                  new ApiError(
+                      500,
+                      "Something went wrong during unsubscribing chef"
+                  )
               );
     }
 };
