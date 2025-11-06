@@ -41,7 +41,7 @@ export const uploadImageToCloud = async (localFilePath) => {
         console.log("File Path:", localFilePath);
         console.log("File Exists:", fs.existsSync(localFilePath));
         console.log("File Size:", stats.size);
-        console.log("File MIME:", mime.lookup(localFilePath));
+        // console.log("File MIME:", mime.lookup(localFilePath));
         console.log("==========================");
         // Upload image
         const response = await cloudinary.uploader.upload(localFilePath, {
