@@ -392,15 +392,16 @@ export const handleGetUserById = async (req, res, next) => {
 
 export const handleGetFavourites = async (req, res, next) => {
     try {
-        const favourites = await User.findById(req.user._id)
-        .populate("favourites")
+        const user = await User.findById(req.user._id)
+        .populate("favourites");
+
         return res
             .status(200)
             .json(
                 new ApiResponse(
                     200,
                     "Favourites fetched successfully",
-                    favourites
+                    user.favourites
                 )
             );
     } catch (error) {
