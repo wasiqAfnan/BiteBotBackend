@@ -11,6 +11,7 @@ const constants = {
     CLOUDINARY_SECRET: process.env.CLOUDINARY_SECRET,
     CLOUDINARY_IMAGE_MODERATION: process.env.CLOUDINARY_IMAGE_MODERATION,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(","),
+    OPENAI_API_MODEL: process.env.OPENAI_API_MODEL,
 };
 
 export default constants;

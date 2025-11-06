@@ -5,12 +5,12 @@ import normalizeFinalOutput from "../utils/normalizeLLMOutput.js";
 
 export async function recipeChat(req, res, next) {
     try {
-        const { chatHistory } = req.body;
-        if (!Array.isArray(chatHistory) || chatHistory.length === 0) {
-            throw new ApiError(400, "No chatHistory provided");
+        const { userInput } = req.body;
+        if (!userInput) {
+            throw new ApiError(400, "No user input provided");
         }
 
-        const result = await run(recipeAgent, chatHistory);
+        const result = await run(recipeAgent, userInput);
         const normalized = normalizeFinalOutput(result.finalOutput);
 
         return res
