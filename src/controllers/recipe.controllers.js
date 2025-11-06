@@ -411,7 +411,7 @@ const HandleGetQuickRecipes = async (req, res, next) => {
                     totalCookingTime: { $lte: maxTime },
                 },
             },
-            
+
             { $limit: limit },
         ]);
 
@@ -437,30 +437,103 @@ const HandleGetQuickRecipes = async (req, res, next) => {
         );
     }
 };
-const HandleGetPremiumRecipes = async (req, res, next) => {};
-const HandleGetRecommendedRecipes = async (req, res, next) => {};
+const HandleGetPremiumRecipes = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 10;
+
+        const premiumRecipes = await Recipe.aggregate([
+            {
+                $match: {
+                    isPremium: true,
+                },
+            },
+            { $limit: limit },
+        ]);
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Premium recipes fetched successfully",
+                    premiumRecipes
+                )
+            );
+    } catch (error) {
+        console.error("Error fetching premium recipes:", error);
+
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                      500,
+                      "Something went wrong fetching premium recipes"
+                  )
+        );
+    }
+};
+const HandleGetRecommendedRecipes = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 10;
+        const maxTime = Number(req.query.maxTime) || 30; // default 30 min
+
+        const recommendedRecipes = await Recipe.aggregate([
+            {
+                $match: {
+                    totalCookingTime: { $lte: maxTime },
+                },
+            },
+
+            { $limit: limit },
+        ]);
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Quick & Easy recipes fetched successfully",
+                    recommendedRecipes
+                )
+            );
+    } catch (error) {
+        console.error("Error fetching recommended recipes:", error);
+
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                      500,
+                      "Something went wrong fetching recommended recipes"
+                  )
+        );
+    }
+};
 
 const handleLikeUnlikeRecipe = async (req, res, next) => {
     try {
         const { id: recipeId } = req.params;
-        const userId = req.user?._id; // from auth middleware
+        const user = req.user; // from auth middleware
+        
 
         const recipe = await Recipe.findById(recipeId);
         if (!recipe) {
             return next(new ApiError(404, "Recipe not found"));
         }
 
-        const alreadyLiked = recipe.likeCount?.includes(userId);
+        const alreadyLiked = recipe.likeCount?.includes(user._id);
 
         if (alreadyLiked) {
             // remove like
-            recipe.likeCount.pull(userId);
+            recipe.likeCount.pull(user._id);
+            user.favourites.pull(recipeId);
         } else {
             // add like
-            recipe.likeCount.push(userId);
+            recipe.likeCount.push(user._id);
+            user.favourites.push(recipeId);
         }
 
-        await recipe.save();
+        await Promise.all([recipe.save(), user.save()]);
 
         return res.status(200).json(
             new ApiResponse(
