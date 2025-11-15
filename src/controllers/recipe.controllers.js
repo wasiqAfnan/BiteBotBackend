@@ -403,21 +403,25 @@ const HandleGetFreshRecipes = async (req, res, next) => {
 };
 const HandleGetQuickRecipes = async (req, res, next) => {
     try {
-        // track time in minutes
-        // sort by totalCookingTime ascending
-        // default maxTime 30 mins
         const limit = Number(req.query.limit) || 10;
-        const maxTime = Number(req.query.maxTime) || 30; // default 30 min
+        const maxTime = Number(req.query.maxTime); 
+        
+        const pipeline = [];
 
-        const quickRecipes = await Recipe.aggregate([
-            {
+        // If maxTime is sent from frontend → apply filter
+        if (maxTime !== null && !isNaN(maxTime)) {
+            pipeline.push({
                 $match: {
                     totalCookingTime: { $lte: maxTime },
                 },
-            },
+            });
+        }
 
-            { $limit: limit },
-        ]);
+        pipeline.push({ $sort: { totalCookingTime: 1 } }, { $limit: limit });
+
+        const quickRecipes = await Recipe.aggregate(pipeline);
+
+        console.log(quickRecipes);
 
         return res
             .status(200)
