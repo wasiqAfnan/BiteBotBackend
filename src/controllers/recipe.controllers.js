@@ -1,34 +1,123 @@
 import Recipe from "../models/recipe.models.js";
-import { ApiResponse, ApiError } from "../utils/index.js";
+import { ApiResponse, ApiError, uploadImageToCloud } from "../utils/index.js";
 import User from "../models/user.models.js";
 
 // CREATE Recipe
 const addRecipe = async (req, res, next) => {
     try {
-        // const payload = {
-        //     ...req.body, // all validated, allowed fields
-        //     chefId: req.user._id, // override or inject server‐set field
-        // };
-        // const newRecipe = await Recipe.create(payload);
+        /** ============================
+         * 1️⃣ Extract files
+         * ============================ */
+        const thumbnailFile = req.files?.thumbnailFile?.[0] || null;
+        const stepImagesFiles = req.files?.stepImages || [];
 
-        console.log("Files saved:", req.files);
-        // respond with the newly created recipe object
+        /** ============================
+         * 2️⃣ Extract sanitized body
+         * ============================ */
+        const {
+            title,
+            description,
+            ingredients,
+            steps, // [{ stepNo, instruction }]
+            cuisine,
+            dietaryLabels,
+            totalCookingTime,
+            servings,
+            externalMediaLinks,
+            isPremium,
+        } = req.body;
+
+        /** ============================
+         * 3️⃣ Validate images
+         * ============================ */
+
+        // Thumbnail validation
+        if (!thumbnailFile) {
+            throw new ApiError(400, "Thumbnail image is required");
+        }
+
+        // Steps images validation
+        if (stepImagesFiles.length === 0) {
+            throw new ApiError(400, "Step images are required");
+        }
+
+        // Match step count with image count
+        if (stepImagesFiles.length !== steps.length) {
+            throw new ApiError(
+                400,
+                `Mismatch: Expected ${steps.length} step images, received ${stepImagesFiles.length}`
+            );
+        }
+
+        /** ============================
+         * 4️⃣ Upload Thumbnail
+         * ============================ */
+        const uploadedThumb = await uploadImageToCloud(thumbnailFile.path);
+
+        const thumbnail = {
+            public_id: uploadedThumb.public_id,
+            secure_url: uploadedThumb.secure_url,
+        };
+
+        /** ============================
+         * 5️⃣ Upload Step Images
+         * ============================ */
+        const uploadedSteps = await Promise.all(
+            stepImagesFiles.map((file) => uploadImageToCloud(file.path))
+        );
+
+        /** ============================
+         * 6️⃣ Merge steps + image URLs
+         * ============================ */
+        const finalSteps = steps.map((stepObj, index) => ({
+            stepNo: stepObj.stepNo,
+            instruction: stepObj.instruction,
+            imageUrl: {
+                public_id: uploadedSteps[index].public_id,
+                secure_url: uploadedSteps[index].secure_url,
+            },
+        }));
+
+        /** ============================
+         * 7️⃣ Build recipe payload
+         * ============================ */
+        const recipeData = {
+            title,
+            description,
+            ingredients,
+            steps: finalSteps,
+            cuisine,
+            dietaryLabels: dietaryLabels || [],
+            totalCookingTime,
+            servings,
+            externalMediaLinks: externalMediaLinks || [],
+            isPremium,
+            thumbnail,
+            chef: req.user?._id,
+        };
+
+        /** ============================
+         * 8️⃣ Save recipe
+         * ============================ */
+        const recipe = await Recipe.create(recipeData);
+
         return res
             .status(201)
-            .json(new ApiResponse(201, "Recipe added successfully"));
+            .json(new ApiResponse(201, "Recipe created successfully", recipe));
+
     } catch (error) {
         console.log("Some Error Occured: ", error);
-        // If the error is already an instance of ApiError, pass it to the error handler
+
         if (error instanceof ApiError) {
             return next(error);
         }
 
-        // For all other errors, send a generic error message
         return next(
             new ApiError(500, "Something went wrong during recipe creation")
         );
     }
 };
+
 
 // READ All Recipes (Not in used)
 const getAllRecipes = async (req, res, next) => {
