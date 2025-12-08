@@ -5,16 +5,17 @@ import User from "../models/user.models.js";
 // CREATE Recipe
 const addRecipe = async (req, res, next) => {
     try {
-        const payload = {
-            ...req.body, // all validated, allowed fields
-            chefId: req.user._id, // override or inject server‐set field
-        };
-        const newRecipe = await Recipe.create(payload);
+        // const payload = {
+        //     ...req.body, // all validated, allowed fields
+        //     chefId: req.user._id, // override or inject server‐set field
+        // };
+        // const newRecipe = await Recipe.create(payload);
 
+        console.log("Files saved:", req.files);
         // respond with the newly created recipe object
         return res
             .status(201)
-            .json(new ApiResponse(201, "Recipe added successfully", newRecipe));
+            .json(new ApiResponse(201, "Recipe added successfully"));
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler

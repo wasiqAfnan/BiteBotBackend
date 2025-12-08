@@ -181,9 +181,9 @@ export const handleLogout = async (req, res, next) => {
 };
 
 export const handleChangeAvatar = async (req, res, next) => {
-    const avatarLocalPath = req.file ? req.file.path : "";
     try {
         // Get avatar file from request
+        const avatarLocalPath = req.file ? req.file.path : "";
 
         // Check if avatar file is empty
         if (!avatarLocalPath) {

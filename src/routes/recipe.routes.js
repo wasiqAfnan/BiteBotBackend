@@ -10,18 +10,28 @@ import {
     HandleGetQuickRecipes,
     HandleGetPremiumRecipes,
     HandleGetRecommendedRecipes,
-    handleLikeUnlikeRecipe
+    handleLikeUnlikeRecipe,
 } from "../controllers/recipe.controllers.js";
-import {
-    validateRecipe,
-} from "../middlewares/recipe.middlewares.js";
+import { parseRecipeJsonFields, validateRecipe, validateRecipeFiles } from "../middlewares/recipe.middlewares.js";
 import { isAuthorized, isLoggedIn } from "../middlewares/auth.middlewares.js";
+import upload from "../middlewares/multer.middlewares.js";
 
 const recipeRoutes = Router();
 
 recipeRoutes
     .route("/")
-    .post(isLoggedIn, isAuthorized("CHEF"), validateRecipe, addRecipe)
+    .post(
+        isLoggedIn,
+        isAuthorized("CHEF"),
+        upload.fields([
+            { name: "thumbnailFile", maxCount: 1 }, // single file
+            { name: "stepImages", maxCount: 20 }, // array of files
+        ]),
+        // validateRecipeFiles,
+        parseRecipeJsonFields,
+        validateRecipe,
+        addRecipe
+    )
     .get(getAllRecipes);
 
 recipeRoutes.route("/trending").get(HandleGetTrendingRecipes);

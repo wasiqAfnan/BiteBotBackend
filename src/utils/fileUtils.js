@@ -25,24 +25,13 @@ export const uploadImageToCloud = async (localFilePath) => {
     if (!localFilePath) return null;
 
     try {
-        // Validate file existence
-        // if (!fs.existsSync(localFilePath)) {
-        //     throw new ApiError(400, `File not found: ${localFilePath}`);
-        // }
-
-        // const stats = fs.statSync(localFilePath);
-        // if (stats.size === 0) {
-        //     throw new ApiError(
-        //         400,
-        //         `File is empty or corrupted: ${localFilePath}`
-        //     );
-        // }
         console.log("=== Upload Debug Info ===");
         console.log("File Path:", localFilePath);
         console.log("File Exists:", fs.existsSync(localFilePath));
         // console.log("File Size:", stats.size);
         // console.log("File MIME:", mime.lookup(localFilePath));
         console.log("==========================");
+
         // Upload image
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "image",

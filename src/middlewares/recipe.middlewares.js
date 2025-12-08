@@ -1,5 +1,85 @@
 import Joi from "joi";
 import User from "../models/user.models.js";
+import { ApiError } from "../utils/index.js";
+
+
+export const validateRecipeFiles = (req, res, next) => {
+  try {
+    const thumbnail = req.files?.thumbnailFile;
+    const stepImages = req.files?.stepImages || [];
+
+    // 1️⃣ Thumbnail must be present
+    if (!thumbnail || thumbnail.length === 0) {
+      throw new ApiError(400, "Thumbnail image is required");
+    }
+
+    // 2️⃣ Parse steps first (because they come as JSON string)
+    let instructions = [];
+    if (typeof req.body.steps === "string") {
+      try {
+        instructions = JSON.parse(req.body.steps);
+      } catch (err) {
+        throw new ApiError(400, "Invalid steps format. Must be valid JSON array.");
+      }
+    } else if (Array.isArray(req.body.steps)) {
+      instructions = req.body.steps;
+    }
+
+    if (!instructions || instructions.length === 0) {
+      throw new ApiError(400, "Steps instructions are required");
+    }
+
+    // 3️⃣ Step images count must match instructions count
+    if (stepImages.length !== instructions.length) {
+      throw new ApiError(
+        400,
+        `Step images count (${stepImages.length}) does not match instructions count (${instructions.length})`
+      );
+    }
+
+    // Everything ok
+    next();
+  } catch (error) {
+    console.log("File Validation Error:", error);
+
+    if (error instanceof ApiError) return next(error);
+    return next(new ApiError(500, "Failed validating recipe files"));
+  }
+};
+
+export const parseRecipeJsonFields = (req, res, next) => {
+  try {
+    // Fields that must be parsed from JSON string → real array/object
+    const fieldsToParse = [
+      "ingredients",
+      "steps",
+      "dietaryLabels",
+      "externalMediaLinks",
+    ];
+
+    fieldsToParse.forEach((field) => {
+      const value = req.body[field];
+
+      // Only parse if:
+      // 1. exists
+      // 2. is a string (because form-data always sends arrays as strings)
+      if (value && typeof value === "string") {
+        try {
+          req.body[field] = JSON.parse(value);
+        } catch (err) {
+          throw new ApiError(400, `Invalid JSON format in field: ${field}`);
+        }
+      }
+    });
+
+    next();
+  } catch (error) {
+    console.log("JSON Parse Error:", error);
+
+    if (error instanceof ApiError) return next(error);
+    return next(new ApiError(400, "Invalid JSON input"));
+  }
+};
 
 export const validateRecipe = (req, res, next) => {
     try {
@@ -72,13 +152,14 @@ export const validateRecipe = (req, res, next) => {
         });
 
         if (error) {
+            console.log(error)
             throw new ApiError(400, "Validation failed");
         }
 
         req.body = value; // setting sanitized data to req.body
         next();
     } catch (error) {
-        console.log("Some Error Occured: ", error);
+        console.log(error);
         // If the error is already an instance of ApiError, pass it to the error handler
         if (error instanceof ApiError) {
             return next(error);
