@@ -40,7 +40,7 @@ export const uploadImageToCloud = async (localFilePath) => {
         console.log("=== Upload Debug Info ===");
         console.log("File Path:", localFilePath);
         console.log("File Exists:", fs.existsSync(localFilePath));
-        console.log("File Size:", stats.size);
+        // console.log("File Size:", stats.size);
         // console.log("File MIME:", mime.lookup(localFilePath));
         console.log("==========================");
         // Upload image
