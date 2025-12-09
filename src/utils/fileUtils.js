@@ -38,6 +38,10 @@ export const uploadImageToCloud = async (localFilePath) => {
             // moderation: constants.CLOUDINARY_IMAGE_MODERATION,
             folder: "uploads/images", // organize in Cloudinary
             allowed_formats: ["jpg", "jpeg", "png", "webp"],
+
+            cloud_name: constants.CLOUDINARY_CLOUD_NAME,
+            api_key: constants.CLOUDINARY_API_KEY,
+            api_secret: constants.CLOUDINARY_SECRET,
         });
 
         // Delete local files
