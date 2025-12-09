@@ -1,8 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
+import cloudinaryConfig from "../configs/cloudinary.configs.js";
 import fs from "fs";
 import path from "path";
 import constants from "../constants.js";
 import { ApiError } from "./index.js";
+
+
 
 export const deleteLocalFile = async (localFilePath) => {
     try {
@@ -32,6 +35,7 @@ export const uploadImageToCloud = async (localFilePath) => {
         // console.log("File MIME:", mime.lookup(localFilePath));
         console.log("==========================");
 
+        console.log(cloudinary.config())
         // Upload image
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "image",
