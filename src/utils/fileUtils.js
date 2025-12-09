@@ -5,8 +5,6 @@ import path from "path";
 import constants from "../constants.js";
 import { ApiError } from "./index.js";
 
-
-
 export const deleteLocalFile = async (localFilePath) => {
     try {
         if (!localFilePath) return;
@@ -31,6 +29,9 @@ export const uploadImageToCloud = async (localFilePath) => {
         console.log("=== Upload Debug Info ===");
         console.log("File Path:", localFilePath);
         console.log("File Exists:", fs.existsSync(localFilePath));
+        const stats = fs.statSync(localFilePath);
+        console.log("FILE SIZE:", stats.size);
+
         // console.log("File Size:", stats.size);
         // console.log("File MIME:", mime.lookup(localFilePath));
         console.log("==========================");
@@ -38,7 +39,7 @@ export const uploadImageToCloud = async (localFilePath) => {
         // console.log(cloudinary.config())
         console.log("Cloud Name: ", constants.CLOUDINARY_CLOUD_NAME);
         console.log("Cloud Key: ", constants.CLOUDINARY_API_KEY);
-        console.log("Cloud Secret: ",constants.CLOUDINARY_SECRET);
+        console.log("Cloud Secret: ", constants.CLOUDINARY_SECRET);
 
         // Upload image
         const response = await cloudinary.uploader.upload(localFilePath, {
