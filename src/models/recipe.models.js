@@ -12,7 +12,7 @@ const recipeSchema = new mongoose.Schema(
             required: [true, "Description is required"],
         },
 
-         thumbnail: {
+        thumbnail: {
             public_id: {
                 type: String,
             },
@@ -127,7 +127,13 @@ const recipeSchema = new mongoose.Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "User",
             },
-        ]
+        ],
+        
+        nutrition: {
+            totalCalories: {
+                type: String,
+            },
+        },
     },
     { timestamps: true }
 );
