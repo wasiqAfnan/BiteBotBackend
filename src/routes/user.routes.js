@@ -40,6 +40,8 @@ userRoutes.route("/:id").get(handleGetUserById);
 
 // subscription routes
 userRoutes.route("/subscribe/:chefId").get(isLoggedIn, handleSubscribeToChef);
-userRoutes.route("/unsubscribe/:chefId").get(isLoggedIn, handleUnsubscribeFromChef);
+userRoutes
+    .route("/unsubscribe/:chefId")
+    .get(isLoggedIn, handleUnsubscribeFromChef);
 
 export default userRoutes;

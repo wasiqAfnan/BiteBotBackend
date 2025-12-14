@@ -15,7 +15,7 @@ const app = express();
 // cors setup
 const corsOptions = {
     origin: constants.ALLOWED_ORIGINS,
-    credentials: true,
+    credentials: true, // cookie accept
 };
 
 // middlewares
