@@ -57,12 +57,19 @@ export const handleRegister = async (req, res, next) => {
             profileData.dietaryLabels = profile_dietaryLabels;
 
         // Create new user object
-        const newUser = new User({
+        const newUser = new User.create({
             email: email.toLowerCase(),
             password: password,
             profile: profileData,
             favourites: [], // Initialize empty favourites array
         });
+
+        if (!newUser) {
+            throw new ApiError(
+                500,
+                "User registration failed, please try again"
+            );
+        }
 
         // token create
         const accessToken = await newUser.generateAccessToken();
@@ -70,8 +77,8 @@ export const handleRegister = async (req, res, next) => {
 
         // save refresh token
         newUser.refreshToken = refreshToken;
-        const savedUser = await newUser.save();
-        savedUser.password = undefined;
+        await newUser.save();
+        newUser.password = undefined;
 
         // send cookie
         res.cookie("accessToken", accessToken, {
@@ -80,29 +87,26 @@ export const handleRegister = async (req, res, next) => {
             sameSite: "None",
             maxAge: 24 * 60 * 60 * 1000, // 1 day
         }).cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: true,
-                sameSite: "None",
-                maxAge: 24 * 60 * 60 * 1000, // 1 day
-            });
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
 
         // send response
         return res.status(201).json(
             new ApiResponse(201, "User Created Successfully", {
-                savedUser,
+                newUser,
             })
         );
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
-        if (error instanceof ApiError) {
-            return next(error);
-        }
-
-        // For all other errors, send a generic error message
-        return next(
-            new ApiError(500, "Something went wrong during registration")
-        );
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(500, "Something went wrong during registration")
+              );
     }
 };
 
@@ -137,7 +141,14 @@ export const handleLogin = async (req, res, next) => {
 
         // token create
         const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
+
+        // save refresh token
+        user.refreshToken = refreshToken;
+        await user.save();
+
         user.password = undefined;
+        user.refreshToken = undefined;
 
         // send cookie
         res.cookie("accessToken", accessToken, {
@@ -145,6 +156,11 @@ export const handleLogin = async (req, res, next) => {
             secure: true,
             sameSite: "None",
             maxAge: 24 * 60 * 60 * 1000, // 1 day
+        }).cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
         // send response
@@ -153,23 +169,30 @@ export const handleLogin = async (req, res, next) => {
             .json(new ApiResponse(200, "Login Successful", user));
     } catch (error) {
         console.log("Some Error Occured: ", error);
-        // If the error is already an instance of ApiError, pass it to the error handler
-        if (error instanceof ApiError) {
-            return next(error);
-        }
 
-        // For all other errors, send a generic error message
-        return next(new ApiError(500, "Something went wrong during login"));
+        // If the error is already an instance of ApiError, pass it to the error handler
+        error instanceof ApiError
+            ? next(error)
+            : next(new ApiError(500, "Something went wrong during login"));
     }
 };
 
 export const handleLogout = async (req, res, next) => {
     try {
+        const user = await User.findById(req.user._id);
+        user.refreshToken = undefined; // Remove refresh token from db
+        await user.save();
+
         res.clearCookie("accessToken", {
             httpOnly: true,
             secure: true,
             sameSite: "None",
-            path: "/"
+            path: "/",
+        }).clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            path: "/",
         });
 
         return res
@@ -178,12 +201,9 @@ export const handleLogout = async (req, res, next) => {
     } catch (error) {
         console.log("Some Error Occured: ", error);
         // If the error is already an instance of ApiError, pass it to the error handler
-        if (error instanceof ApiError) {
-            return next(error);
-        }
-
-        // For all other errors, send a generic error message
-        return next(new ApiError(500, "Something went wrong during logout"));
+        error instanceof ApiError
+            ? next(error)
+            : next(new ApiError(500, "Something went wrong during logout"));
     }
 };
 
@@ -401,8 +421,7 @@ export const handleGetUserById = async (req, res, next) => {
 
 export const handleGetFavourites = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user._id)
-        .populate("favourites");
+        const user = await User.findById(req.user._id).populate("favourites");
 
         return res
             .status(200)
