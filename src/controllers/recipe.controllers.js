@@ -12,7 +12,7 @@ const addRecipe = async (req, res, next) => {
         // const stepImagesFiles = req.files?.stepImages || [];
         const thumbnailFile = req.files?.thumbnailFile?.[0];
         const stepImagesFiles = req.files?.stepImages || [];
-        console.log("Got files : ", thumbnailFile, stepImagesFiles);
+        // console.log("Got files : ", thumbnailFile, stepImagesFiles);
 
         /** ============================
          * 2️⃣ Extract sanitized body
@@ -73,7 +73,7 @@ const addRecipe = async (req, res, next) => {
         }
 
         await deleteLocalFiles();
-        console.log("File cleanup Success");
+        // console.log("File cleanup Success");
 
         /** ============================
          * 6️⃣ Merge steps + image URLs
@@ -328,7 +328,7 @@ const getRecipeById = async (req, res, next) => {
             .includes(chefId);
 
         if (recipe.isPremium && !isOwner && !isSubscribed) {
-            console.log(chefId);
+            // console.log(chefId);
             throw new ApiError(
                 403,
                 "Access denied: Premium Subscription Required",
@@ -487,7 +487,7 @@ const HandleGetFreshRecipes = async (req, res, next) => {
                 )
             );
     } catch (error) {
-        console.error("Error fetching fresh recipes:", error);
+        console.log("Error fetching fresh recipes:", error);
 
         return next(
             error instanceof ApiError
@@ -519,7 +519,7 @@ const HandleGetQuickRecipes = async (req, res, next) => {
 
         const quickRecipes = await Recipe.aggregate(pipeline);
 
-        console.log(quickRecipes);
+        // console.log(quickRecipes);
 
         return res
             .status(200)
@@ -531,7 +531,7 @@ const HandleGetQuickRecipes = async (req, res, next) => {
                 )
             );
     } catch (error) {
-        console.error("Error fetching quick recipes:", error);
+        console.log("Error fetching quick recipes:", error);
 
         return next(
             error instanceof ApiError
@@ -566,7 +566,7 @@ const HandleGetPremiumRecipes = async (req, res, next) => {
                 )
             );
     } catch (error) {
-        console.error("Error fetching premium recipes:", error);
+        console.log("Error fetching premium recipes:", error);
 
         return next(
             error instanceof ApiError
@@ -613,8 +613,8 @@ const HandleGetRecommendedRecipes = async (req, res, next) => {
         // Limit the number of recipes returned (default 10)
         const limit = Number(req.query.limit) || 10;
 
-        console.log("MatchStage: ", matchStage);
-        console.log("Uyser pref: ", cuisine, dietaryLabels);
+        // console.log("MatchStage: ", matchStage);
+        // console.log("Uyser pref: ", cuisine, dietaryLabels);
 
         // The aggregation pipeline starts here
         const recommendedRecipes = await Recipe.aggregate([
@@ -639,7 +639,7 @@ const HandleGetRecommendedRecipes = async (req, res, next) => {
                 )
             );
     } catch (error) {
-        console.error("Error fetching recommended recipes:", error);
+        console.log("Error fetching recommended recipes:", error);
 
         return next(
             error instanceof ApiError
@@ -691,7 +691,7 @@ const handleLikeUnlikeRecipe = async (req, res, next) => {
             )
         );
     } catch (error) {
-        console.error("Error toggling like:", error);
+        console.log("Error toggling like:", error);
         return next(
             error instanceof ApiError
                 ? error

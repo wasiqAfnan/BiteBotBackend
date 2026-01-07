@@ -16,6 +16,7 @@ import {
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
+import { validateUpdateProfile } from "../middlewares/updateProfile.middleware.js";
 
 const userRoutes = Router();
 
@@ -28,13 +29,15 @@ userRoutes
     .post(isLoggedIn, upload.single("avatar"), handleChangeAvatar);
 
 // password routes
-userRoutes.route("/change-password").patch(isLoggedIn, handleChangePassword);
+userRoutes.route("/change-password").put(isLoggedIn, handleChangePassword);
 userRoutes.route("/reset-password").post(handleResetPassword); //Not implemented
 userRoutes.route("/forget-password").post(handleForgetPassword); //Not implemented
 
 // profile routes
 userRoutes.route("/me").get(isLoggedIn, handleGetProfile);
-userRoutes.route("/update").patch(isLoggedIn, handleUpdateProfile);
+userRoutes
+    .route("/update")
+    .put(isLoggedIn, validateUpdateProfile, handleUpdateProfile);
 userRoutes.route("/favourites").get(isLoggedIn, handleGetFavourites);
 userRoutes.route("/:id").get(handleGetUserById);
 

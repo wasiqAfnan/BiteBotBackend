@@ -5,8 +5,8 @@ import {
     uploadImageToCloud,
     deleteLocalFiles,
     deleteCloudFile,
-    isBlankValue,
-    convertToMongoKey,
+    // isBlankValue,
+    // convertToMongoKey,
 } from "../utils/index.js";
 
 export const handleRegister = async (req, res, next) => {
@@ -36,7 +36,7 @@ export const handleRegister = async (req, res, next) => {
         // Password validation in controller
         const passwordRegex =
             // /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s])[\s\S]{8,}$/;
-            
+
             /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s])[^\s]{8,64}$/;
         // check min 8 char, one uppercase, special char and number
         if (!passwordRegex.test(password)) {
@@ -326,55 +326,31 @@ export const handleGetProfile = async (req, res, next) => {
 export const handleUpdateProfile = async (req, res, next) => {
     try {
         const userId = req.user.id; // from auth middleware
-        const body = req.body;
+
+        // Map request body keys to user profile fields
+        const fieldMap = {
+            name: "profile.name",
+            bio: "profile.bio",
+            dietaryLabels: "profile.dietaryLabels",
+            allergens: "profile.allergens",
+            cuisine: "profile.cuisine",
+            dietaryDraft: "profile.dietaryDraft",
+            allergenDraft: "profile.allergenDraft",
+        };
+
         const updates = {};
-
-        // SECURITY: Whitelist allowed fields only
-        const allowedFields = [
-            "profile_name",
-            "profile_bio",
-            "profile_dietaryLabels",
-            "profile_allergens",
-            "profile_cuisine",
-            "chefProfile_education",
-            "chefProfile_experience",
-            "chefProfile_externalLinks",
-            "chefProfile_subscriptionPrice",
-            "chefProfile_recipes",
-            "favourites",
-        ];
-
-        for (const key in body) {
-            if (body.hasOwnProperty(key)) {
-                // SECURITY: Only process whitelisted fields
-                if (!allowedFields.includes(key)) {
-                    continue; // Skip unauthorized fields
-                }
-
-                // check for blank fields
-                if (isBlankValue(body[key])) {
-                    continue;
-                }
-
-                // Convert to dot notation and add to updates
-                updates[convertToMongoKey(key)] = body[key];
-            }
-        }
-
-        console.log(updates);
-
-        if (Object.keys(updates).length === 0) {
-            return new ApiError(403, "No fields to update");
+        for (const key in req.body) {
+            updates[fieldMap[key]] = req.body[key];
         }
 
         const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { $set: updates }, // update only required fields
+            req.user.id,
+            { $set: updates }, // already validated
             { new: true, runValidators: true }
         );
 
         if (!updatedUser) {
-            return new ApiError(403, "No user found");
+            throw new ApiError(403, "No user found");
         }
 
         return res
