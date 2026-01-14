@@ -18,21 +18,21 @@ const DIETARY_LABELS = [
 ];
 
 const ALLERGENS = [
-    "Peanuts",
-    "Tree Nuts",
-    "Milk",
-    "Egg",
-    "Wheat",
-    "Soy",
-    "Fish",
-    "Shellfish",
-    "Sesame",
-    "Mustard",
-    "Celery",
-    "Lupin",
-    "Sulfites",
-    "Molluscs",
-    "Corn",
+    "peanuts",
+    "tree nuts",
+    "milk",
+    "egg",
+    "wheat",
+    "soy",
+    "fish",
+    "shellfish",
+    "sesame",
+    "mustard",
+    "celery",
+    "lupin",
+    "sulfites",
+    "molluscs",
+    "corn",
 ];
 
 export const validateUpdateProfile = (req, res, next) => {
@@ -46,8 +46,8 @@ export const validateUpdateProfile = (req, res, next) => {
             .optional(),
 
         allergens: Joi.array()
-        .items(Joi.string.valid(...ALLERGENS))
-        .optional(),
+            .items(Joi.string.valid(...ALLERGENS))
+            .optional(),
 
         cuisine: Joi.string().trim().optional(),
     }).min(1); // At least one field required
