@@ -8,6 +8,8 @@ import {
     // isBlankValue,
     // convertToMongoKey,
 } from "../utils/index.js";
+import sendMail from "../utils/sendMail.js";
+import welcomeTemplate from "../emailTemplates/welcome.template.js";
 
 export const handleRegister = async (req, res, next) => {
     try {
@@ -93,6 +95,13 @@ export const handleRegister = async (req, res, next) => {
             secure: true,
             sameSite: "None",
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        // send welcome email
+        await sendMail({
+            to: newUser.email,
+            subject: "Welcome to BiteBot",
+            html: welcomeTemplate({ name: newUser.profile.name }),
         });
 
         // send response

@@ -14,9 +14,9 @@ export const createTransporter = async () => {
     auth: {
       type: 'OAuth2',
       user: constants.AUTHORIZE_MAIL,
-      clientId: constants.CLIENT_ID,
-      clientSecret: constants.CLIENT_SECRET,
-      refreshToken: constants.REFRESH_TOKEN,
+      clientId: constants.GMAIL_API_CLIENT_ID,
+      clientSecret: constants.GMAIL_API_CLIENT_SECRET,
+      refreshToken: constants.GMAIL_API_REFRESH_TOKEN,
       accessToken: token,
     },
   });
