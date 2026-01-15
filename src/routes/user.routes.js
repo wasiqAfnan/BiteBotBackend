@@ -30,8 +30,8 @@ userRoutes
 
 // password routes
 userRoutes.route("/change-password").put(isLoggedIn, handleChangePassword);
-userRoutes.route("/reset-password").post(handleResetPassword); //Not implemented
-userRoutes.route("/forget-password").post(handleForgetPassword); //Not implemented
+userRoutes.route("/reset-password").post(handleResetPassword);
+userRoutes.route("/forget-password").post(handleForgetPassword);
 
 // profile routes
 userRoutes.route("/me").get(isLoggedIn, handleGetProfile);

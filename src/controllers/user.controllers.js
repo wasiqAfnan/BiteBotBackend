@@ -8,8 +8,11 @@ import {
     // isBlankValue,
     // convertToMongoKey,
 } from "../utils/index.js";
+import constants from "../constants.js";
 import sendMail from "../utils/sendMail.js";
 import welcomeTemplate from "../emailTemplates/welcome.template.js";
+import forgotPasswordTemplate from "../emailTemplates/forgotPassword.template.js";
+import crypto from "crypto";
 
 export const handleRegister = async (req, res, next) => {
     try {
@@ -20,6 +23,7 @@ export const handleRegister = async (req, res, next) => {
             profile_name,
             profile_cuisine,
             profile_dietaryLabels,
+            profile_allergens,
         } = req.body;
 
         // validate
@@ -60,6 +64,8 @@ export const handleRegister = async (req, res, next) => {
         if (profile_dietaryLabels)
             profileData.dietaryLabels = profile_dietaryLabels;
 
+        if (profile_allergens) profileData.allergens = profile_allergens;
+
         // Create new user object
         const newUser = await User.create({
             email: email.toLowerCase(),
@@ -98,11 +104,11 @@ export const handleRegister = async (req, res, next) => {
         });
 
         // send welcome email
-        await sendMail({
-            to: newUser.email,
-            subject: "Welcome to BiteBot",
-            html: welcomeTemplate({ name: newUser.profile.name }),
-        });
+        await sendMail(
+            newUser.email,
+            "Welcome to BiteBot",
+            welcomeTemplate({ name: newUser.profile.name })
+        );
 
         // send response
         return res.status(201).json(
@@ -304,9 +310,112 @@ export const handleChangePassword = async (req, res, next) => {
     }
 };
 
-export const handleResetPassword = async (req, res, next) => {};
+export const handleForgetPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            throw new ApiError(400, "Email is required");
+        }
 
-export const handleForgetPassword = async (req, res, next) => {};
+        const user = await User.findOne({ email });
+        if (!user) {
+            throw new ApiError(400, "User not found with this mail");
+        }
+
+        // generate reset token
+        const resetToken = crypto.randomBytes(20).toString("hex");
+
+        console.log("Reset Token: ", resetToken);
+        
+        // generate hash of reset token to store in db
+        const forgotPasswordToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+        console.log("forgotPasswordToken: ", forgotPasswordToken);
+
+        // generate expiry date
+        const forgotPasswordExpiry = Date.now() + 15 * 60 * 1000;
+
+        // generate reset password url
+        const resetPasswordUrl = `${constants.FRONTEND_URL}/resetpassword/${resetToken}`;
+
+        console.log("resetPasswordUrl: ", resetPasswordUrl);
+
+        // send mail to user with frontend url + reset token
+        await sendMail(
+            email,
+            "Reset Password",
+            forgotPasswordTemplate({
+                name: user.profile.name,
+                resetLink: resetPasswordUrl,
+            })
+        );
+
+        // saving token in db
+        await User.findByIdAndUpdate(user._id, {
+            forgotPasswordToken,
+            forgotPasswordExpiry,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Reset password link has been sent to ${email} successfully`,
+        });
+    } catch (error) {
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(
+                      500,
+                      "Something went wrong during while sending reset password link"
+                  )
+              );
+    }
+};
+
+export const handleResetPassword = async (req, res, next) => {
+    try {
+        const { resetToken, password } = req.body;
+        if (!resetToken || !password) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+        // generate hash of reset token to check in db
+        const forgotPasswordToken = crypto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
+
+        // find user with reset token and expiry date
+        const user = await User.findOne({
+            forgotPasswordToken,
+            forgotPasswordExpiry: { $gt: Date.now() },
+        });
+        if (!user) {
+            throw new ApiError(400, "Token is invalid or expired");
+        }
+
+        user.password = password;
+        user.forgotPasswordToken = undefined;
+        user.forgotPasswordExpiry = undefined;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(new ApiResponse("Password reset successfully"));
+    } catch (error) {
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(
+                      500,
+                      "Something went wrong during password reset"
+                  )
+              );
+    }
+};
 
 export const handleGetProfile = async (req, res, next) => {
     try {

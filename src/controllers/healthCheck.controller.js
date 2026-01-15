@@ -8,7 +8,7 @@ export const handleHealthCheck = async (req, res) => {
     //    const resp = await sendMail({
     //         to: "subhranil.chak.sc@gmail.com",
     //         subject: "Health Check",
-    //         html: "<h1>Mail is working BC. Sent through bitebot server</h1>",
+    //         html: "<h1>Mail is working. Sent through bitebot server</h1>",
     //     });
     //     console.log("Mail sent successful",resp);
     // } catch (error) {
