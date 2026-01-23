@@ -13,6 +13,7 @@ import {
     handleSubscribeToChef,
     handleUnsubscribeFromChef,
     handleGetFavourites,
+    handleContactus,
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
@@ -40,6 +41,7 @@ userRoutes
     .put(isLoggedIn, validateUpdateProfile, handleUpdateProfile);
 userRoutes.route("/favourites").get(isLoggedIn, handleGetFavourites);
 userRoutes.route("/:id").get(handleGetUserById);
+userRoutes.route("/contact").post(isLoggedIn, handleContactus);
 
 // subscription routes
 userRoutes.route("/subscribe/:chefId").get(isLoggedIn, handleSubscribeToChef);

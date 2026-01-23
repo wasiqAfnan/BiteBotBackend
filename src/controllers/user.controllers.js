@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import User from "../models/user.models.js";
 import {
     ApiResponse,
@@ -10,9 +11,12 @@ import {
 } from "../utils/index.js";
 import constants from "../constants.js";
 import sendMail from "../utils/sendMail.js";
-import welcomeTemplate from "../emailTemplates/welcome.template.js";
-import forgotPasswordTemplate from "../emailTemplates/forgotPassword.template.js";
-import crypto from "crypto";
+import {
+    contactUsAutoReplyTemplate,
+    contactUsTemplate,
+    forgotPasswordTemplate,
+    welcomeTemplate,
+} from "../emailTemplates/index.js";
 
 export const handleRegister = async (req, res, next) => {
     try {
@@ -326,12 +330,12 @@ export const handleForgetPassword = async (req, res, next) => {
         const resetToken = crypto.randomBytes(20).toString("hex");
 
         console.log("Reset Token: ", resetToken);
-        
+
         // generate hash of reset token to store in db
         const forgotPasswordToken = crypto
-        .createHash("sha256")
-        .update(resetToken)
-        .digest("hex");
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
 
         console.log("forgotPasswordToken: ", forgotPasswordToken);
 
@@ -359,10 +363,9 @@ export const handleForgetPassword = async (req, res, next) => {
             forgotPasswordExpiry,
         });
 
-        return res.status(200).json({
-            success: true,
-            message: `Reset password link has been sent to ${email} successfully`,
-        });
+        return res
+            .status(200)
+            .json(new ApiResponse(200, `Mail sent successfully on ${email}`));
     } catch (error) {
         error instanceof ApiError
             ? next(error)
@@ -404,7 +407,7 @@ export const handleResetPassword = async (req, res, next) => {
 
         return res
             .status(200)
-            .json(new ApiResponse("Password reset successfully"));
+            .json(new ApiResponse(200, "Password reset successfully"));
     } catch (error) {
         error instanceof ApiError
             ? next(error)
@@ -511,6 +514,44 @@ export const handleGetUserById = async (req, res, next) => {
             ? next(error)
             : next(
                   new ApiError(500, "Something went wrong during fetching user")
+              );
+    }
+};
+
+export const handleContactus = async (req, res, next) => {
+    try {
+        const { email, profile } = req.user;
+        const { subject, message } = req.body;
+
+        if (!subject || !message) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+        // send mail to admin
+        await sendMail(
+            constants.AUTHORIZE_MAIL,
+            subject,
+            contactUsTemplate({ name: profile.name, email, message })
+        );
+
+        // send confirm mail to user
+        await sendMail(
+            email,
+            "BiteBot: New Contact Us Submission",
+            contactUsAutoReplyTemplate({ name: profile.name })
+        );
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, "Message sent successfully"));
+    } catch (error) {
+        error instanceof ApiError
+            ? next(error)
+            : next(
+                  new ApiError(
+                      500,
+                      "Something went wrong during sending conatct us message"
+                  )
               );
     }
 };
