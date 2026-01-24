@@ -46,7 +46,7 @@ export const validateUpdateProfile = (req, res, next) => {
             .optional(),
 
         allergens: Joi.array()
-            .items(Joi.string.valid(...ALLERGENS))
+            .items(Joi.string().valid(...ALLERGENS))
             .optional(),
 
         cuisine: Joi.string().trim().optional(),
