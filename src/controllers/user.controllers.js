@@ -309,7 +309,7 @@ export const handleChangePassword = async (req, res, next) => {
 
         // For all other errors, send a generic error message
         return next(
-            new ApiError(500, "Something went wrong during file upload")
+            new ApiError(500, "Something went wrong during password change")
         );
     }
 };
@@ -329,7 +329,7 @@ export const handleForgetPassword = async (req, res, next) => {
         // generate reset token
         const resetToken = crypto.randomBytes(20).toString("hex");
 
-        console.log("Reset Token: ", resetToken);
+        // console.log("Reset Token: ", resetToken);
 
         // generate hash of reset token to store in db
         const forgotPasswordToken = crypto
@@ -337,7 +337,7 @@ export const handleForgetPassword = async (req, res, next) => {
             .update(resetToken)
             .digest("hex");
 
-        console.log("forgotPasswordToken: ", forgotPasswordToken);
+        // console.log("forgotPasswordToken: ", forgotPasswordToken);
 
         // generate expiry date
         const forgotPasswordExpiry = Date.now() + 15 * 60 * 1000;
@@ -345,7 +345,7 @@ export const handleForgetPassword = async (req, res, next) => {
         // generate reset password url
         const resetPasswordUrl = `${constants.FRONTEND_URL}/resetpassword/${resetToken}`;
 
-        console.log("resetPasswordUrl: ", resetPasswordUrl);
+        // console.log("resetPasswordUrl: ", resetPasswordUrl);
 
         // send mail to user with frontend url + reset token
         await sendMail(

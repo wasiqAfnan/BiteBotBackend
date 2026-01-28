@@ -122,7 +122,7 @@ export const uploadImageToCloud = async (localFilePath) => {
             );
         }
 
-        console.log("Uploaded File: ", localFilePath);
+        // console.log("Uploaded File: ", localFilePath);
         return {
             public_id: response.public_id,
             secure_url: response.secure_url,
