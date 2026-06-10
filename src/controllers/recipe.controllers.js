@@ -830,7 +830,7 @@ const handleLikeRecipe = async (req, res, next) => {
             RecipeCacheService.invalidateRecipeDetail(recipeId),
             RecipeCacheService.invalidateAllFeeds(),
             UserCacheService.updateProfile(user._id, updatedUser),
-            UserCacheService.updateFavourites(user._id, updatedUser.favourites)
+            UserCacheService.invalidateFavourites(user._id)
         ]);
 
         return res.status(200).json(
@@ -894,7 +894,7 @@ const handleUnlikeRecipe = async (req, res, next) => {
             RecipeCacheService.invalidateRecipeDetail(recipeId),
             RecipeCacheService.invalidateAllFeeds(),
             UserCacheService.updateProfile(user._id, updatedUser),
-            UserCacheService.updateFavourites(user._id, updatedUser.favourites)
+            UserCacheService.invalidateFavourites(user._id)
         ]);
 
         return res.status(200).json(
