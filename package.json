@@ -17,7 +17,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "watch": "node --watch src/index.js"
+    "watch": "node --watch src/index.js",
+    "test":  "node --import ./tests/setup.js --test"
   },
   "dependencies": {
     "@langchain/core": "^1.1.42",
@@ -48,7 +49,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.10",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "supertest": "^7.2.2"
   }
 }
