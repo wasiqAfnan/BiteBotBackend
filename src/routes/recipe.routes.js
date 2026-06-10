@@ -5,11 +5,12 @@ import {
     getRecipeById,
     updateRecipe,
     deleteRecipe,
-    HandleGetTrendingRecipes,
-    HandleGetFreshRecipes,
-    HandleGetQuickRecipes,
-    HandleGetPremiumRecipes,
-    HandleGetRecommendedRecipes,
+    handleGetTrendingRecipes,
+    handleGetFreshRecipes,
+    handleGetQuickRecipes,
+    handleGetPremiumRecipes,
+    handleGetRecommendedRecipes,
+    handleGetTrendingPremiumRecipes,
     handleLikeRecipe,
     handleUnlikeRecipe,
     handleGetSearchRecipe,
@@ -46,11 +47,12 @@ recipeRoutes
     )
     .get(rateLimiter(60, 60), getAllRecipes);
 
-recipeRoutes.route("/trending").get(rateLimiter(60, 60), HandleGetTrendingRecipes);
-recipeRoutes.route("/fresh").get(rateLimiter(60, 60), HandleGetFreshRecipes);
-recipeRoutes.route("/quick").get(rateLimiter(60, 60), HandleGetQuickRecipes);
-recipeRoutes.route("/premium").get(rateLimiter(60, 60), HandleGetPremiumRecipes);
-recipeRoutes.route("/recommended").get(isLoggedIn, rateLimiter(60, 60), HandleGetRecommendedRecipes);
+recipeRoutes.route("/trending").get(rateLimiter(60, 60), handleGetTrendingRecipes);
+recipeRoutes.route("/fresh").get(rateLimiter(60, 60), handleGetFreshRecipes);
+recipeRoutes.route("/quick").get(rateLimiter(60, 60), handleGetQuickRecipes);
+recipeRoutes.route("/premium").get(rateLimiter(60, 60), handleGetPremiumRecipes);
+recipeRoutes.route("/recommended").get(isLoggedIn, rateLimiter(60, 60), handleGetRecommendedRecipes);
+recipeRoutes.route("/trending-premium").get(rateLimiter(60, 60), handleGetTrendingPremiumRecipes);
 
 recipeRoutes.route("/search").get(rateLimiter(60, 50), handleGetSearchRecipe);
 recipeRoutes.route("/like/:id").get(isLoggedIn, rateLimiter(60, 30), handleLikeRecipe);

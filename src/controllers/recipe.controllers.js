@@ -422,7 +422,7 @@ const deleteRecipe = async (req, res, next) => {
     }
 };
 
-const HandleGetTrendingRecipes = async (req, res, next) => {
+const handleGetTrendingRecipes = async (req, res, next) => {
     try {
         // const thirtyDaysAgo = new Date();
         // thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -497,7 +497,7 @@ const HandleGetTrendingRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetFreshRecipes = async (req, res, next) => {
+const handleGetFreshRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
 
@@ -551,7 +551,7 @@ const HandleGetFreshRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetQuickRecipes = async (req, res, next) => {
+const handleGetQuickRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
         const maxTime = Number(req.query.maxTime);
@@ -619,7 +619,7 @@ const HandleGetQuickRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetPremiumRecipes = async (req, res, next) => {
+const handleGetPremiumRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
 
@@ -670,10 +670,10 @@ const HandleGetPremiumRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetRecommendedRecipes = async (req, res, next) => {
+const handleGetRecommendedRecipes = async (req, res, next) => {
     try {
-        const limit = req.query.limit ? Number(req.query.limit) : 10;
-        const userId = req?.user?._id?.toString() || "guest";
+        const limit = Number(req.query.limit) || 12;
+        const userId = req?.user?._id?.toString();
 
         let recommendedRecipes = await RecipeCacheService.getRecommendedFeed(userId, limit);
         if (!recommendedRecipes) {
@@ -726,6 +726,66 @@ const HandleGetRecommendedRecipes = async (req, res, next) => {
                 : new ApiError(
                     500,
                     "Something went wrong fetching recommended recipes"
+                )
+        );
+    }
+};
+
+const handleGetTrendingPremiumRecipes = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 4;
+
+        let trendingPremiumRecipes = await RecipeCacheService.getTrendingPremiumFeed(limit);
+        if (!trendingPremiumRecipes) {
+            trendingPremiumRecipes = await Recipe.aggregate([
+                {
+                    $match: {
+                        isPremium: true,
+                        isActive: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        likesTotal: {
+                            $size: { $ifNull: ["$likes", []] },
+                        },
+                    },
+                },
+                { $sort: { likesTotal: -1, createdAt: -1 } },
+                { $limit: limit },
+                {
+                    $project: {
+                        reviews: 0,
+                        steps: 0,
+                        externalMediaLinks: 0,
+                        ingredients: 0,
+                    },
+                },
+            ]);
+
+
+
+            await RecipeCacheService.updateTrendingPremiumFeed(limit, trendingPremiumRecipes);
+        }
+
+        // Send success response
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Trending premium recipes fetched successfully",
+                    trendingPremiumRecipes
+                )
+            );
+    } catch (error) {
+        console.log("Error while fetching trending premium recipes:", error);
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                    500,
+                    "Something went wrong fetching trending premium recipes"
                 )
         );
     }
@@ -1493,11 +1553,12 @@ export {
     getRecipeById,
     updateRecipe,
     deleteRecipe,
-    HandleGetTrendingRecipes,
-    HandleGetFreshRecipes,
-    HandleGetQuickRecipes,
-    HandleGetPremiumRecipes,
-    HandleGetRecommendedRecipes,
+    handleGetTrendingRecipes,
+    handleGetFreshRecipes,
+    handleGetQuickRecipes,
+    handleGetPremiumRecipes,
+    handleGetRecommendedRecipes,
+    handleGetTrendingPremiumRecipes,
     handleLikeRecipe,
     handleUnlikeRecipe,
     handleGetSearchRecipe,

@@ -106,6 +106,19 @@ class RecipeCacheService {
         return deleteCache(`feed:recommended:${userId}:${limit}`);
     }
 
+    // --- Trending Premium ---
+    static async getTrendingPremiumFeed(limit) {
+        return getCache(`feed:trending:premium:${limit}`);
+    }
+
+    static async updateTrendingPremiumFeed(limit, data, ttl = FEED_TTL) {
+        return setCache(`feed:trending:premium:${limit}`, data, ttl);
+    }
+
+    static async invalidateTrendingPremiumFeed(limit) {
+        return deleteCache(`feed:trending:premium:${limit}`);
+    }
+
     // ==========================================
     // D. BULK INVALIDATION HELPERS
     // ==========================================
@@ -124,6 +137,7 @@ class RecipeCacheService {
             deleteCachePattern("feed:fresh:*"),
             deleteCachePattern("feed:quick:*"),
             deleteCachePattern("feed:premium:*"),
+            deleteCachePattern("feed:trending:premium:*"),
         ]);
     }
 }
