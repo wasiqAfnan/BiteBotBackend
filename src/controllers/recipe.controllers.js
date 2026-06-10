@@ -271,7 +271,7 @@ const getRecipeById = async (req, res, next) => {
             recipe = recipe.toObject();
         }
 
-        const chefId = recipe.chefId.toString()
+        const chefId = recipe.chefId._id.toString()
         const userId = req.user?._id?.toString();
 
         // Allow access if user is the chef (recipe owner)

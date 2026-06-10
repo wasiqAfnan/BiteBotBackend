@@ -282,6 +282,12 @@ const handleLogout = async (req, res, next) => {
     }
 };
 
+const handleGetProfile = async (req, res, next) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Profile Data Fetched Successfully", req.user));
+};
+
 const handleChangeAvatar = async (req, res, next) => {
     try {
         // Get avatar file from request
@@ -518,7 +524,10 @@ const handleGetMySubscriptions = async (req, res, next) => {
                 isActive: true,
             })
                 .select("profile.subscribed")
-                .populate("profile.subscribed");
+                .populate({
+                    path: "profile.subscribed",
+                    select: "_id profile.name profile.bio profile.avatar",
+                });
 
             if (!user) {
                 throw new ApiError(404, "User not found");
@@ -686,47 +695,52 @@ const handleGetUserById = async (req, res, next) => {
 
 const handleGetMySubscribers = async (req, res, next) => {
     try {
-        // A chef wants to see their subscribers.
         const userId = req.user._id;
 
         let subscribers = await UserCacheService.getChefSubscribers(userId);
 
         if (!subscribers) {
-            const user = await User.findOne({
+            const chef = await User.findOne({
                 _id: userId,
                 isActive: true,
                 role: "CHEF",
             })
                 .select("chefProfile.subscribers")
-                .populate("chefProfile.subscribers");
+                .populate({
+                    path: "chefProfile.subscribers",
+                    select: "_id profile.name profile.bio profile.avatar",
+                });
 
-            if (!user) {
-                throw new ApiError(404, "Chef not found");
+            if (!chef) {
+                return next(new ApiError(404, "Chef not found"));
             }
 
-            subscribers = user.chefProfile?.subscribers || [];
-            await UserCacheService.updateChefSubscribers(userId, subscribers);
+            subscribers = chef.chefProfile.subscribers;
+
+            await UserCacheService.updateChefSubscribers(
+                userId,
+                subscribers
+            );
         }
 
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    "Subscribers fetched successfully",
-                    subscribers
-                )
-            );
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                "Subscribers fetched successfully",
+                subscribers
+            )
+        );
     } catch (error) {
         console.error("Error fetching subscribers:", error);
-        error instanceof ApiError
-            ? next(error)
-            : next(
-                new ApiError(
+
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
                     500,
-                    "Something went wrong during fetching subscribers"
+                    "Something went wrong while fetching subscribers"
                 )
-            );
+        );
     }
 };
 
@@ -1295,10 +1309,15 @@ const getAllChefReviews = async (req, res, next) => {
 const handleGetMyReviewsGiven = async (req, res, next) => {
     try {
         const userId = req.user._id;
+
+        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+        const limit = Math.max(parseInt(req.query.limit, 10) || 4, 1);
+        const skip = (page - 1) * limit;
+
         let reviewsGiven = await UserCacheService.getReviewsGiven(userId);
 
         if (!reviewsGiven) {
-            reviewsGiven = await User.findOne({
+            const user = await User.findOne({
                 _id: userId,
                 isActive: true,
             })
@@ -1309,21 +1328,45 @@ const handleGetMyReviewsGiven = async (req, res, next) => {
                 })
                 .lean();
 
-            if (!reviewsGiven) {
-                throw new ApiError(404, "Reviews given not found");
+            if (!user) {
+                throw new ApiError(404, "User not found");
             }
+
+            reviewsGiven = user.reviewsGiven || [];
 
             await UserCacheService.updateReviewsGiven(userId, reviewsGiven);
         }
 
+        const sortedReviewsGiven = [...reviewsGiven].sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        const totalReviews = sortedReviewsGiven.length;
+        const totalPages = Math.ceil(totalReviews / limit);
+        const paginatedReviews = sortedReviewsGiven.slice(skip, skip + limit);
+
         return res.status(200).json(
-            new ApiResponse(200, "Reviews given fetched successfully", reviewsGiven)
+            new ApiResponse(200, "Reviews given fetched successfully", {
+                reviewsGiven: paginatedReviews,
+                meta: {
+                    page,
+                    limit,
+                    totalReviews,
+                    totalPages,
+                },
+            })
         );
     } catch (error) {
         console.error("Error fetching reviews given:", error);
-        error instanceof ApiError
-            ? next(error)
-            : next(new ApiError(500, "Something went wrong while fetching reviews given"));
+
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                    500,
+                    "Something went wrong while fetching reviews given"
+                )
+        );
     }
 };
 
@@ -1332,6 +1375,7 @@ export {
     handleLogin,
     handleGuestLogin,
     handleLogout,
+    handleGetProfile,
     handleChangeAvatar,
     handleChangePassword,
     handleForgetPassword,
