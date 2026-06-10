@@ -255,7 +255,7 @@ const handleLogout = async (req, res, next) => {
             ...(isChef ? [
                 UserCacheService.invalidateChefRecipes(userId),
                 UserCacheService.invalidateChefSubscribers(userId),
-                UserCacheService.invalidateChefReviewSummary(userId),
+                UserCacheService.invalidateChefReviews(userId),
             ] : []),
         ]);
 
@@ -1049,17 +1049,22 @@ const addChefReview = async (req, res, next) => {
                     updatedAt: new Date(),
                 },
             },
-        }, { new: true });
-
-        await UserCacheService.updateProfile(userId, updatedReviewer);
-        await UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven);
-        await UserCacheService.invalidateChefReviewSummary(chefId)
+        }, { new: true }).select("reviewsGiven")
+            .populate({
+                path: "reviewsGiven.targetId",
+                select: "_id profile.name profile.avatar title thumbnail",
+            })
+            .lean();
 
         recalculateChefRatings(updatedChef);
         await updatedChef.save();
         const cachedChef = updatedChef.toObject();
 
-        await UserCacheService.updateProfile(chefId, cachedChef);
+        await Promise.all([
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
+            UserCacheService.invalidateChefReviews(chefId),
+            UserCacheService.updateProfile(chefId, cachedChef),
+        ]);
 
         return res
             .status(201)
@@ -1077,95 +1082,119 @@ const addChefReview = async (req, res, next) => {
 const updateChefReview = async (req, res, next) => {
     try {
         const { chefId } = req.params;
-        const { rating, message } = req.body;
         const userId = req.user._id;
+
+        const rating = Number(req.body.rating);
+        const message = req.body.message;
 
         if (!mongoose.Types.ObjectId.isValid(chefId)) {
             throw new ApiError(400, "Invalid chef ID format");
         }
-        if (!rating || rating < 1 || rating > 5) {
+
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
             throw new ApiError(400, "Rating is required and must be between 1 and 5");
         }
+
+        let trimmedMessage;
         if (message !== undefined) {
-            if (!message?.trim()) {
+            trimmedMessage = message.trim();
+            if (!trimmedMessage) {
                 throw new ApiError(400, "Review message is required");
             }
-            if (message.length > 1000) {
+            if (trimmedMessage.length > 1000) {
                 throw new ApiError(400, "Message cannot exceed 1000 characters");
             }
         }
 
-        const updateFields = {
-            "chefProfile.reviews.$.updatedAt": new Date(),
-            "chefProfile.reviews.$.rating": rating,
-        };
-        if (message !== undefined) {
-            updateFields["chefProfile.reviews.$.message"] = message.trim();
-        }
+        const now = new Date();
 
-        const updatedUser = await User.findOneAndUpdate(
+        const updatedChef = await User.findOneAndUpdate(
             {
-                _id: chefId, "chefProfile.reviews.userId": userId, role: "CHEF",
+                _id: chefId,
+                role: "CHEF",
                 isActive: true,
+                "chefProfile.reviews.userId": userId,
             },
-            { $set: updateFields },
             {
-                new: true,
-            }
+                $set: {
+                    "chefProfile.reviews.$.rating": rating,
+                    "chefProfile.reviews.$.updatedAt": now,
+                    ...(message !== undefined
+                        ? { "chefProfile.reviews.$.message": trimmedMessage }
+                        : {}),
+                },
+            },
+            { new: true }
         );
 
-        if (!updatedUser) {
-            const chefExists = await User.exists({ _id: chefId, role: "CHEF", isActive: true });
+        if (!updatedChef) {
+            const chefExists = await User.exists({
+                _id: chefId,
+                role: "CHEF",
+                isActive: true,
+            });
+
             if (!chefExists) {
                 throw new ApiError(404, "Chef not found or is inactive");
             }
+
             throw new ApiError(404, "Review not found");
         }
 
-        // Keep User.reviewsGiven synchronized
         const userUpdateFields = {
             "reviewsGiven.$[elem].rating": rating,
-            "reviewsGiven.$[elem].updatedAt": new Date(),
+            "reviewsGiven.$[elem].updatedAt": now,
         };
+
         if (message !== undefined) {
-            userUpdateFields["reviewsGiven.$[elem].message"] = message.trim();
+            userUpdateFields["reviewsGiven.$[elem].message"] = trimmedMessage;
         }
 
         const updatedReviewer = await User.findByIdAndUpdate(
             userId,
-            { $set: userUpdateFields },
             {
+                $set: userUpdateFields,
+            },
+            {
+                new: true,
                 arrayFilters: [
                     {
                         "elem.targetType": "User",
-                        "elem.targetId": chefId,
+                        "elem.targetId": new mongoose.Types.ObjectId(chefId),
                     },
                 ],
-                new: true,
             }
-        );
+        )
+            .select("reviewsGiven")
+            .populate({
+                path: "reviewsGiven.targetId",
+                select: "_id profile.name profile.avatar title thumbnail",
+            })
+            .lean();
 
-        await UserCacheService.updateProfile(userId, updatedReviewer);
-        await UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven);
-        await UserCacheService.invalidateChefReviewSummary(chefId)
+        if (!updatedReviewer) {
+            throw new ApiError(500, "Failed to synchronize user's reviewsGiven");
+        }
 
-        recalculateChefRatings(updatedUser);
-        await updatedUser.save();
+        recalculateChefRatings(updatedChef);
+        await updatedChef.save();
 
-        const cachedChef = updatedUser.toObject();
+        const cachedChef = updatedChef.toObject();
 
-        await UserCacheService.updateProfile(chefId, cachedChef);
+        await Promise.all([
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
+            UserCacheService.invalidateChefReviews(chefId),
+            UserCacheService.updateProfile(chefId, cachedChef),
+        ]);
 
         return res
             .status(200)
             .json(new ApiResponse(200, "Review updated successfully"));
     } catch (error) {
         console.error("Error updating chef review:", error);
-        error instanceof ApiError
+        return error instanceof ApiError
             ? next(error)
-            : next(
-                new ApiError(500, "Something went wrong while updating chef review")
-            );
+            : next(new ApiError(500, "Something went wrong while updating chef review"));
     }
 };
 
@@ -1178,55 +1207,99 @@ const deleteChefReview = async (req, res, next) => {
             throw new ApiError(400, "Invalid chef ID format");
         }
 
-        const updatedUser = await User.findOneAndUpdate(
+        // Remove review from chef
+        const updatedChef = await User.findOneAndUpdate(
             {
                 _id: chefId,
                 role: "CHEF",
                 isActive: true,
-                "chefProfile.reviews.userId": userId
+                "chefProfile.reviews.userId": userId,
             },
-            { $pull: { "chefProfile.reviews": { userId } } },
-            { new: true }
+            {
+                $pull: {
+                    "chefProfile.reviews": {
+                        userId,
+                    },
+                },
+            },
+            {
+                new: true,
+            }
         );
 
-        if (!updatedUser) {
-            const chefExists = await User.exists({ _id: chefId, role: "CHEF", isActive: true });
+        if (!updatedChef) {
+            const chefExists = await User.exists({
+                _id: chefId,
+                role: "CHEF",
+                isActive: true,
+            });
+
             if (!chefExists) {
                 throw new ApiError(404, "Chef not found or is inactive");
             }
+
             throw new ApiError(404, "Review not found or could not be deleted");
         }
 
-        // Keep User.reviewsGiven synchronized
-        const updatedReviewer = await User.findByIdAndUpdate(userId, {
-            $pull: {
-                reviewsGiven: {
-                    targetType: "User",
-                    targetId: new mongoose.Types.ObjectId(chefId),
+        // Remove review from reviewsGiven
+        const updatedReviewer = await User.findByIdAndUpdate(
+            userId,
+            {
+                $pull: {
+                    reviewsGiven: {
+                        targetType: "User",
+                        targetId: new mongoose.Types.ObjectId(chefId),
+                    },
                 },
             },
-        }, { new: true });
+            {
+                new: true,
+            }
+        )
+            .select("reviewsGiven")
+            .populate({
+                path: "reviewsGiven.targetId",
+                select: "_id profile.name profile.avatar title thumbnail",
+            })
+            .lean();
 
-        await UserCacheService.updateProfile(userId, updatedReviewer);
-        await UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven);
-        await UserCacheService.invalidateChefReviewSummary(chefId)
+        if (!updatedReviewer) {
+            throw new ApiError(
+                500,
+                "Failed to synchronize user's reviewsGiven"
+            );
+        }
 
-        recalculateChefRatings(updatedUser);
-        await updatedUser.save();
+        // Recalculate chef rating after deletion
+        recalculateChefRatings(updatedChef);
+        await updatedChef.save();
 
-        const cachedChef = updatedUser.toObject();
+        const cachedChef = updatedChef.toObject();
 
-        await UserCacheService.updateProfile(chefId, cachedChef);
+        // Update caches
+        await Promise.all([
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
+            UserCacheService.invalidateChefReviews(chefId),
+            UserCacheService.updateProfile(chefId, cachedChef),
+        ]);
 
         return res
             .status(200)
-            .json(new ApiResponse(200, "Review deleted successfully"));
+            .json(
+                new ApiResponse(
+                    200,
+                    "Review deleted successfully"
+                )
+            );
     } catch (error) {
         console.error("Error deleting chef review:", error);
         return next(
             error instanceof ApiError
                 ? error
-                : new ApiError(500, "Something went wrong while deleting chef review")
+                : new ApiError(
+                    500,
+                    "Something went wrong while deleting chef review"
+                )
         );
     }
 };
@@ -1242,7 +1315,7 @@ const getAllChefReviews = async (req, res, next) => {
             throw new ApiError(400, "Invalid chef ID format");
         }
 
-        let summaryData = await UserCacheService.getChefReviewSummary(chefId);
+        let summaryData = await UserCacheService.getChefReviews(chefId);
 
         if (!summaryData) {
             const chef = await User.findOne({
@@ -1269,7 +1342,7 @@ const getAllChefReviews = async (req, res, next) => {
                 breakdown,
             };
 
-            await UserCacheService.updateChefReviewSummary(chefId, summaryData);
+            await UserCacheService.updateChefReviews(chefId, summaryData);
         }
 
         // Always fetch paginated reviews from DB (not from cache)

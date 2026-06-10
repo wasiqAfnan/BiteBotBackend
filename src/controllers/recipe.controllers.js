@@ -1247,7 +1247,7 @@ const addReview = async (req, res, next) => {
         }
 
         // User.reviewsGiven
-        const reviewsGiven = await User.findByIdAndUpdate(userId, {
+        const updatedReviewer = await User.findByIdAndUpdate(userId, {
             $push: {
                 reviewsGiven: {
                     targetType: "Recipe",
@@ -1269,8 +1269,7 @@ const addReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
@@ -1357,7 +1356,7 @@ const updateReview = async (req, res, next) => {
             userUpdateFields["reviewsGiven.$[elem].message"] = message.trim();
         }
 
-        const reviewsGiven = await User.findByIdAndUpdate(
+        const updatedReviewer = await User.findByIdAndUpdate(
             userId,
             { $set: userUpdateFields },
             {
@@ -1380,8 +1379,7 @@ const updateReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
@@ -1435,7 +1433,7 @@ const deleteReview = async (req, res, next) => {
         }
 
         // Keep User.reviewsGiven synchronized
-        const reviewsGiven = await User.findByIdAndUpdate(userId, {
+        const updatedReviewer = await User.findByIdAndUpdate(userId, {
             $pull: {
                 reviewsGiven: {
                     targetType: "Recipe",
@@ -1453,8 +1451,7 @@ const deleteReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
