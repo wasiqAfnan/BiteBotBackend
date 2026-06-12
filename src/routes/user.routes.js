@@ -23,6 +23,7 @@ import {
     deleteChefReview,
     getAllChefReviews,
     handleGetMyReviewsGiven,
+    getChefDashboard,
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
@@ -55,6 +56,7 @@ userRoutes
 userRoutes.route("/favourites").get(isLoggedIn, rateLimiter(60, 30), handleGetFavourites);
 userRoutes.route("/subscribers").get(isLoggedIn, rateLimiter(60, 30), handleGetMySubscribers);
 userRoutes.route("/contact").post(isLoggedIn, rateLimiter(60, 5), handleContactus);
+userRoutes.route("/dashboard/chef").get(isLoggedIn, getChefDashboard);
 userRoutes.route("/:id").get(rateLimiter(60, 30), handleGetUserById);
 userRoutes.route("/:id/recipes").get(rateLimiter(60, 30), handleGetChefRecipesById);
 

@@ -1443,6 +1443,104 @@ const handleGetMyReviewsGiven = async (req, res, next) => {
     }
 };
 
+const getChefDashboard = async (req, res, next) => {
+    try {
+        if (req.user?.role !== "CHEF") {
+            throw new ApiError(403, "Access denied. Only chefs can access the dashboard.");
+        }
+
+        const chefId = req.user._id;
+
+        const [chef, statsResult, topRecipesResult] = await Promise.all([
+            User.findById(chefId)
+                .select({
+                    "chefProfile.subscribers": 1,
+                    "chefProfile.averageRating": 1,
+                    "chefProfile.subscriptionPrice": 1,
+                    "chefProfile.reviews": { $slice: -20 },
+                })
+                .populate({
+                    path: "chefProfile.reviews.userId",
+                    select: "profile.name profile.avatar",
+                })
+                .lean(),
+
+            Recipe.aggregate([
+                { $match: { chefId: new mongoose.Types.ObjectId(chefId) } },
+                {
+                    $group: {
+                        _id: null,
+                        totalRecipes: { $sum: 1 },
+                        totalLikes: { $sum: { $size: { $ifNull: ["$likes", []] } } },
+                    },
+                },
+            ]),
+
+            Recipe.find({ chefId })
+                .sort({ views: -1, averageRating: -1 })
+                .limit(3)
+                .select("_id title thumbnail description isPremium servings cuisine tags averageRating totalCookingTime likes reviews dietaryLabels")
+                .lean(),
+        ]);
+
+        const totalRecipes = statsResult[0]?.totalRecipes || 0;
+        const totalLikes = statsResult[0]?.totalLikes || 0;
+        const subscribers = chef?.chefProfile?.subscribers?.length || 0;
+        const averageRating = chef?.chefProfile?.averageRating || 0;
+        const subscriptionPrice = chef?.chefProfile?.subscriptionPrice || 0;
+        const monthlyEarnings = Math.round(subscriptionPrice * subscribers);
+
+        const topRecipes = topRecipesResult.map((recipe) => ({
+            _id: recipe._id,
+            title: recipe.title,
+            thumbnail: recipe.thumbnail,
+            description: recipe.description,
+            isPremium: recipe.isPremium,
+            servings: recipe.servings,
+            cuisine: recipe.cuisine,
+            tags: recipe.tags,
+            averageRating: recipe.averageRating,
+            totalCookingTime: recipe.totalCookingTime,
+            likes: Array.isArray(recipe.likes) ? recipe.likes.length : 0,
+            reviewCount: Array.isArray(recipe.reviews) ? recipe.reviews.length : 0,
+            dietaryLabels: recipe.dietaryLabels || [],
+        }));
+
+        const recentReviews = (chef?.chefProfile?.reviews || [])
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 3)
+            .map((r) => ({
+                userId: r.userId?._id,
+                name: r.userId?.profile?.name || "Anonymous",
+                avatar: r.userId?.profile?.avatar?.secure_url || null,
+                rating: r.rating,
+                message: r.message,
+                createdAt: r.createdAt,
+            }));
+
+        return res.status(200).json(
+            new ApiResponse(200, "Chef dashboard data fetched successfully", {
+                stats: {
+                    totalLikes,
+                    subscribers,
+                    monthlyEarnings,
+                    totalRecipes,
+                    averageRating,
+                },
+                topRecipes,
+                recentReviews,
+            })
+        );
+    } catch (error) {
+        console.error("Error fetching chef dashboard:", error);
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(500, "Something went wrong while fetching chef dashboard")
+        );
+    }
+};
+
 export {
     handleRegister,
     handleLogin,
@@ -1467,4 +1565,5 @@ export {
     deleteChefReview,
     getAllChefReviews,
     handleGetMyReviewsGiven,
+    getChefDashboard,
 };
