@@ -3,6 +3,7 @@ import {
     handleRegister,
     handleLogin,
     handleLogout,
+    handleGetProfile,
     handleChangeAvatar,
     handleChangePassword,
     handleResetPassword,
@@ -22,6 +23,7 @@ import {
     deleteChefReview,
     getAllChefReviews,
     handleGetMyReviewsGiven,
+    getChefDashboard,
 } from "../controllers/user.controllers.js";
 import { isLoggedIn } from "../middlewares/auth.middlewares.js";
 import upload from "../middlewares/multer.middlewares.js";
@@ -45,16 +47,18 @@ userRoutes.route("/reset-password").post(rateLimiter(60, 5), handleResetPassword
 userRoutes.route("/forget-password").post(rateLimiter(60, 5), handleForgetPassword);
 
 // profile routes
+userRoutes.route("/me").get(isLoggedIn, rateLimiter(60, 120), handleGetProfile);
 userRoutes.route("/reviews-given").get(isLoggedIn, rateLimiter(60, 30), handleGetMyReviewsGiven);
 userRoutes.route("/subscriptions").get(isLoggedIn, rateLimiter(60, 120), handleGetMySubscriptions);
 userRoutes
     .route("/update")
     .put(isLoggedIn, rateLimiter(60, 30), validateUpdateProfile, handleUpdateProfile);
 userRoutes.route("/favourites").get(isLoggedIn, rateLimiter(60, 30), handleGetFavourites);
-userRoutes.route("/:id").get(rateLimiter(60, 30), handleGetUserById);
 userRoutes.route("/subscribers").get(isLoggedIn, rateLimiter(60, 30), handleGetMySubscribers);
-userRoutes.route("/:id/recipes").get(rateLimiter(60, 30), handleGetChefRecipesById);
 userRoutes.route("/contact").post(isLoggedIn, rateLimiter(60, 5), handleContactus);
+userRoutes.route("/dashboard/chef").get(isLoggedIn, getChefDashboard);
+userRoutes.route("/:id").get(rateLimiter(60, 30), handleGetUserById);
+userRoutes.route("/:id/recipes").get(rateLimiter(60, 30), handleGetChefRecipesById);
 
 // subscription routes
 // userRoutes.route("/subscribe/:chefId").get(isLoggedIn, rateLimiter(60, 15), handleSubscribeToChef);

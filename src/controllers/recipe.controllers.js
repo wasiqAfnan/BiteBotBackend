@@ -271,7 +271,7 @@ const getRecipeById = async (req, res, next) => {
             recipe = recipe.toObject();
         }
 
-        const chefId = recipe.chefId.toString()
+        const chefId = recipe.chefId._id.toString()
         const userId = req.user?._id?.toString();
 
         // Allow access if user is the chef (recipe owner)
@@ -422,7 +422,7 @@ const deleteRecipe = async (req, res, next) => {
     }
 };
 
-const HandleGetTrendingRecipes = async (req, res, next) => {
+const handleGetTrendingRecipes = async (req, res, next) => {
     try {
         // const thirtyDaysAgo = new Date();
         // thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -497,7 +497,7 @@ const HandleGetTrendingRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetFreshRecipes = async (req, res, next) => {
+const handleGetFreshRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
 
@@ -551,7 +551,7 @@ const HandleGetFreshRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetQuickRecipes = async (req, res, next) => {
+const handleGetQuickRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
         const maxTime = Number(req.query.maxTime);
@@ -619,7 +619,7 @@ const HandleGetQuickRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetPremiumRecipes = async (req, res, next) => {
+const handleGetPremiumRecipes = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 12;
 
@@ -670,10 +670,10 @@ const HandleGetPremiumRecipes = async (req, res, next) => {
     }
 };
 
-const HandleGetRecommendedRecipes = async (req, res, next) => {
+const handleGetRecommendedRecipes = async (req, res, next) => {
     try {
-        const limit = req.query.limit ? Number(req.query.limit) : 10;
-        const userId = req?.user?._id?.toString() || "guest";
+        const limit = Number(req.query.limit) || 12;
+        const userId = req?.user?._id?.toString();
 
         let recommendedRecipes = await RecipeCacheService.getRecommendedFeed(userId, limit);
         if (!recommendedRecipes) {
@@ -731,6 +731,66 @@ const HandleGetRecommendedRecipes = async (req, res, next) => {
     }
 };
 
+const handleGetTrendingPremiumRecipes = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 4;
+
+        let trendingPremiumRecipes = await RecipeCacheService.getTrendingPremiumFeed(limit);
+        if (!trendingPremiumRecipes) {
+            trendingPremiumRecipes = await Recipe.aggregate([
+                {
+                    $match: {
+                        isPremium: true,
+                        isActive: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        likesTotal: {
+                            $size: { $ifNull: ["$likes", []] },
+                        },
+                    },
+                },
+                { $sort: { likesTotal: -1, createdAt: -1 } },
+                { $limit: limit },
+                {
+                    $project: {
+                        reviews: 0,
+                        steps: 0,
+                        externalMediaLinks: 0,
+                        ingredients: 0,
+                    },
+                },
+            ]);
+
+
+
+            await RecipeCacheService.updateTrendingPremiumFeed(limit, trendingPremiumRecipes);
+        }
+
+        // Send success response
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Trending premium recipes fetched successfully",
+                    trendingPremiumRecipes
+                )
+            );
+    } catch (error) {
+        console.log("Error while fetching trending premium recipes:", error);
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(
+                    500,
+                    "Something went wrong fetching trending premium recipes"
+                )
+        );
+    }
+};
+
 const handleLikeRecipe = async (req, res, next) => {
     try {
         const { id: recipeId } = req.params;
@@ -770,7 +830,7 @@ const handleLikeRecipe = async (req, res, next) => {
             RecipeCacheService.invalidateRecipeDetail(recipeId),
             RecipeCacheService.invalidateAllFeeds(),
             UserCacheService.updateProfile(user._id, updatedUser),
-            UserCacheService.updateFavourites(user._id, updatedUser.favourites)
+            UserCacheService.invalidateFavourites(user._id)
         ]);
 
         return res.status(200).json(
@@ -834,7 +894,7 @@ const handleUnlikeRecipe = async (req, res, next) => {
             RecipeCacheService.invalidateRecipeDetail(recipeId),
             RecipeCacheService.invalidateAllFeeds(),
             UserCacheService.updateProfile(user._id, updatedUser),
-            UserCacheService.updateFavourites(user._id, updatedUser.favourites)
+            UserCacheService.invalidateFavourites(user._id)
         ]);
 
         return res.status(200).json(
@@ -1187,7 +1247,7 @@ const addReview = async (req, res, next) => {
         }
 
         // User.reviewsGiven
-        const reviewsGiven = await User.findByIdAndUpdate(userId, {
+        const updatedReviewer = await User.findByIdAndUpdate(userId, {
             $push: {
                 reviewsGiven: {
                     targetType: "Recipe",
@@ -1209,8 +1269,7 @@ const addReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
@@ -1297,7 +1356,7 @@ const updateReview = async (req, res, next) => {
             userUpdateFields["reviewsGiven.$[elem].message"] = message.trim();
         }
 
-        const reviewsGiven = await User.findByIdAndUpdate(
+        const updatedReviewer = await User.findByIdAndUpdate(
             userId,
             { $set: userUpdateFields },
             {
@@ -1320,8 +1379,7 @@ const updateReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
@@ -1375,7 +1433,7 @@ const deleteReview = async (req, res, next) => {
         }
 
         // Keep User.reviewsGiven synchronized
-        const reviewsGiven = await User.findByIdAndUpdate(userId, {
+        const updatedReviewer = await User.findByIdAndUpdate(userId, {
             $pull: {
                 reviewsGiven: {
                     targetType: "Recipe",
@@ -1393,8 +1451,7 @@ const deleteReview = async (req, res, next) => {
         await recipe.save();
 
         await Promise.all([
-            UserCacheService.invalidateProfile(userId),
-            UserCacheService.updateReviewsGiven(userId, reviewsGiven),
+            UserCacheService.updateReviewsGiven(userId, updatedReviewer.reviewsGiven),
             RecipeCacheService.updateRecipeDetail(recipeId, recipe.toObject()),
             RecipeCacheService.invalidateRecipeReviews(recipeId),
         ]);
@@ -1493,11 +1550,12 @@ export {
     getRecipeById,
     updateRecipe,
     deleteRecipe,
-    HandleGetTrendingRecipes,
-    HandleGetFreshRecipes,
-    HandleGetQuickRecipes,
-    HandleGetPremiumRecipes,
-    HandleGetRecommendedRecipes,
+    handleGetTrendingRecipes,
+    handleGetFreshRecipes,
+    handleGetQuickRecipes,
+    handleGetPremiumRecipes,
+    handleGetRecommendedRecipes,
+    handleGetTrendingPremiumRecipes,
     handleLikeRecipe,
     handleUnlikeRecipe,
     handleGetSearchRecipe,

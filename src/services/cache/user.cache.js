@@ -99,15 +99,15 @@ class UserCacheService {
         return await deleteCache(`chef:${chefId}:recipes`);
     }
 
-    static async getChefReviewSummary(chefId) {
+    static async getChefReviews(chefId) {
         return await getCache(`chef:${chefId}:reviews:summary`);
     }
 
-    static async updateChefReviewSummary(chefId, summaryData, ttl = DEFAULT_TTL) {
+    static async updateChefReviews(chefId, summaryData, ttl = DEFAULT_TTL) {
         return await setCache(`chef:${chefId}:reviews:summary`, summaryData, ttl);
     }
 
-    static async invalidateChefReviewSummary(chefId) {
+    static async invalidateChefReviews(chefId) {
         return await deleteCache(`chef:${chefId}:reviews:summary`);
     }
 
