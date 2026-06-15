@@ -1541,6 +1541,137 @@ const getChefDashboard = async (req, res, next) => {
     }
 };
 
+const getAdminDashboard = async (req, res, next) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [userStatsResult, recipeStatsResult, recentUsers, recentRecipes] = await Promise.all([
+            User.aggregate([
+                {
+                    $facet: {
+                        totalUsers: [{ $count: "count" }],
+                        totalChefs: [
+                            { $match: { role: "CHEF" } },
+                            { $count: "count" }
+                        ],
+                        premiumUsers: [
+                            { $match: { "profile.subscribed.0": { $exists: true } } },
+                            { $count: "count" }
+                        ],
+                        newUsersToday: [
+                            { $match: { createdAt: { $gte: today } } },
+                            { $count: "count" }
+                        ]
+                    }
+                }
+            ]),
+            Recipe.aggregate([
+                {
+                    $facet: {
+                        totalRecipes: [{ $count: "count" }],
+                        premiumRecipes: [
+                            { $match: { isPremium: true } },
+                            { $count: "count" }
+                        ]
+                    }
+                }
+            ]),
+            User.find()
+                .select("_id role createdAt profile.name profile.avatar")
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .lean(),
+            Recipe.find()
+                .select("title cuisine totalCookingTime isPremium averageRating createdAt thumbnail chefId")
+                .sort({ createdAt: -1 })
+                .limit(6)
+                .populate({
+                    path: "chefId",
+                    select: "profile.name"
+                })
+                .lean()
+        ]);
+
+        const userStats = userStatsResult[0];
+        const recipeStats = recipeStatsResult[0];
+
+        const totalUsers = userStats.totalUsers[0]?.count || 0;
+        const totalChefs = userStats.totalChefs[0]?.count || 0;
+        const premiumUsers = userStats.premiumUsers[0]?.count || 0;
+        const newUsersToday = userStats.newUsersToday[0]?.count || 0;
+        
+        const totalRecipes = recipeStats.totalRecipes[0]?.count || 0;
+        const premiumRecipesCount = recipeStats.premiumRecipes[0]?.count || 0;
+
+        const premiumPercentage = totalUsers > 0 ? Number(((premiumUsers / totalUsers) * 100).toFixed(2)) : 0;
+
+        // Activity Feed: merge recent users and recipes
+        const userActivities = recentUsers.map(u => ({
+            type: "USER_REGISTERED",
+            title: "New User Joined",
+            description: `${u.profile?.name || "A user"} created an account`,
+            createdAt: u.createdAt
+        }));
+
+        const recipeActivities = recentRecipes.map(r => ({
+            type: "RECIPE_CREATED",
+            title: "Recipe Published",
+            description: `${r.title} was published by ${r.chefId?.profile?.name || "a chef"}`,
+            createdAt: r.createdAt
+        }));
+
+        const recentActivities = [...userActivities, ...recipeActivities]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 10);
+
+        return res.status(200).json(
+            new ApiResponse(200, "Dashboard fetched successfully", {
+                dashboardType: "ADMIN",
+                stats: {
+                    totalUsers,
+                    totalChefs,
+                    totalRecipes,
+                    premiumRecipes: premiumRecipesCount,
+                    premiumUsers,
+                    newUsersToday
+                },
+                recentUsers,
+                recentRecipes,
+                premiumEcosystem: {
+                    premiumUsers,
+                    premiumRecipes: premiumRecipesCount,
+                    premiumPercentage
+                },
+                recentActivities
+            })
+        );
+    } catch (error) {
+        console.error("Error fetching admin dashboard:", error);
+        return next(
+            error instanceof ApiError
+                ? error
+                : new ApiError(500, "Something went wrong while fetching admin dashboard")
+        );
+    }
+};
+
+const getDashboard = async (req, res, next) => {
+    try {
+        if (req.user.role === "CHEF") {
+            return getChefDashboard(req, res, next);
+        }
+
+        if (req.user.role === "ADMIN") {
+            return getAdminDashboard(req, res, next);
+        }
+
+        throw new ApiError(403, "Access denied");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export {
     handleRegister,
     handleLogin,
@@ -1565,5 +1696,5 @@ export {
     deleteChefReview,
     getAllChefReviews,
     handleGetMyReviewsGiven,
-    getChefDashboard,
+    getDashboard,
 };
